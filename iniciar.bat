@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title Agenda Mariachi
+title MariachiTotal
 cd /d "%~dp0"
 
 where node >nul 2>nul
@@ -34,7 +34,7 @@ if exist ".env" (
 
 echo.
 echo ============================================
-echo   Agenda Mariachi
+echo   MariachiTotal
 echo   http://localhost:%APP_PORT%
 echo ============================================
 echo.

@@ -17,7 +17,7 @@ if (fs.existsSync(path.join(dist, 'index.html'))) {
   })
 } else {
   app.get('/', (_req, res) => {
-    res.type('html').send('<h1>Agenda Mariachi</h1><p>API activa. Ejecuta <code>npm run build</code> para servir la interfaz.</p>')
+    res.type('html').send('<h1>MariachiTotal</h1><p>API activa. Ejecuta <code>npm run build</code> para servir la interfaz.</p>')
   })
 }
 

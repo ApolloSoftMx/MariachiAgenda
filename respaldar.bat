@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title Respaldo - Agenda Mariachi
+title Respaldo - MariachiTotal
 cd /d "%~dp0"
 
 where node >nul 2>nul

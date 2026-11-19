@@ -34,7 +34,7 @@ export function downloadQuotePng(quote) {
   ctx.fillRect(0, 0, width, 190)
   ctx.fillStyle = '#ffffff'
   ctx.font = '700 42px Inter, system-ui, sans-serif'
-  ctx.fillText('AGENDA MARIACHI', 70, 85)
+  ctx.fillText('MARIACHITOTAL', 70, 85)
   ctx.font = '600 30px Inter, system-ui, sans-serif'
   ctx.fillText('Cotización', 70, 140)
 
@@ -101,7 +101,7 @@ export function downloadQuotePng(quote) {
 
   ctx.fillStyle = '#6b6280'
   ctx.font = '400 24px Inter, system-ui, sans-serif'
-  ctx.fillText('Generada desde la app Agenda Mariachi', 70, height - 40)
+  ctx.fillText('Generada desde la app MariachiTotal', 70, height - 40)
 
   const link = document.createElement('a')
   link.download = `cotizacion-${quote.id || 'nueva'}.png`

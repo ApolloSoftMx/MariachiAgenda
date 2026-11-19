@@ -13,8 +13,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icons/icon-192.png', 'icons/icon-512.png'],
       manifest: {
-        name: 'Agenda Mariachi',
-        short_name: 'Agenda',
+        name: 'MariachiTotal',
+        short_name: 'MariachiTotal',
         description: 'Agenda, clientes y finanzas para mariachi',
         lang: 'es-MX',
         theme_color: '#6d28d9',

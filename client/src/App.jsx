@@ -77,7 +77,7 @@ function Login({ config, onLogin }) {
       <div className="login-card">
         <div className="login-brand">
           <div className="login-logo">🎺</div>
-          <h1>Agenda Mariachi</h1>
+          <h1>MariachiTotal</h1>
           <p>Eventos, clientes y finanzas en un solo lugar</p>
         </div>
         {config.googleEnabled && (
@@ -124,7 +124,7 @@ function Layout({ user, config, notify, logout }) {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="brand"><span className="brand-icon">🎺</span><span>Agenda Mariachi</span></div>
+        <div className="brand"><span className="brand-icon">🎺</span><span>MariachiTotal</span></div>
         <nav className="nav">
           {NAV.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end}
@@ -144,7 +144,7 @@ function Layout({ user, config, notify, logout }) {
         <header className="topbar">
           <div className="topbar-title">
             <span className="topbar-icon">🎺</span>
-            <strong>Agenda Mariachi</strong>
+            <strong>MariachiTotal</strong>
           </div>
           <div className="topbar-actions">
             <NavLink to="/eventos/nuevo" className="btn btn-primary btn-sm">+ Evento</NavLink>

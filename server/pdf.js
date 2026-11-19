@@ -81,7 +81,7 @@ export function buildQuoteLines(quote) {
   }
 
   lines.push([`Estatus: ${statusLabel(quote.status)}`, 10, Math.max(y - 12, 60)])
-  lines.push(['Agenda Mariachi · Cotización generada desde la app', 9, 42])
+  lines.push(['MariachiTotal · Cotización generada desde la app', 9, 42])
   return lines
 }
 
@@ -98,7 +98,7 @@ export function quotePdf(quote) {
   const lines = buildQuoteLines(quote)
   let content = '0.32 0.12 0.55 rg\n0 790 595 52 re f\n'
   content += '1 1 1 rg\n'
-  content += `BT /F1 18 Tf 40 807 Td (${clean('AGENDA MARIACHI')}) Tj ET\n`
+  content += `BT /F1 18 Tf 40 807 Td (${clean('MARIACHITOTAL')}) Tj ET\n`
   content += '0 0 0 rg\n'
   for (const [text, size, y] of lines) {
     content += `BT /F1 ${size} Tf 40 ${y} Td (${clean(text)}) Tj ET\n`

@@ -1,4 +1,4 @@
-# 🎺 Agenda Mariachi
+# 🎺 MariachiTotal
 
 Sistema de agenda, clientes y finanzas para un músico de mariachi. Funciona como PWA instalable en el celular, guarda todo en SQLite y se conecta con un bot de Telegram. Pensado para correr en tu servidor local y publicarse con Cloudflare Tunnel.
 

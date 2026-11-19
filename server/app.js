@@ -136,7 +136,7 @@ export function createApp(config = {}) {
   app.get('/api/config', (req, res) => {
     const google = googleConfig(req)
     res.json({
-      appName: 'Agenda Mariachi',
+      appName: 'MariachiTotal',
       botUsername: setting('bot_username', 'BOT_USERNAME', config.botUsername || ''),
       botEnabled: Boolean(setting('bot_token', 'BOT_TOKEN', '')),
       subscriptionsEnabled: boolSetting('subscriptions_enabled', 'ENABLE_SUBSCRIPTIONS', false),
@@ -1008,7 +1008,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background
 .accept input{max-width:100%;font-family:inherit}
 .accept .btn{margin-top:0}
 .error{color:#b42318!important;font-weight:600}
-</style></head><body><div class="card"><div class="head"><small>AGENDA MARIACHI</small><h1>Cotización</h1></div><div class="body">
+</style></head><body><div class="card"><div class="head"><small>MARIACHITOTAL</small><h1>Cotización</h1></div><div class="body">
 <h1>${escapeHtml(quote.title)}</h1>
 ${row('Cliente', quote.client_name)}
 ${row('Teléfono', quote.client_phone)}

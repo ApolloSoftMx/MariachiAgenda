@@ -47,7 +47,7 @@ const check = (name, condition) => {
 }
 
 const config = await call('GET', '/config')
-check('config responde', config.appName === 'Agenda Mariachi')
+check('config responde', config.appName === 'MariachiTotal')
 check('Google sin configurar', config.googleEnabled === false)
 check('registro abierto', config.registrationEnabled === true)
 
