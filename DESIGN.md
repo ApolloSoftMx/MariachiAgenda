@@ -152,6 +152,11 @@ components:
     textColor: "{colors.primary}"
     rounded: "{rounded.pill}"
     padding: "3px 9px"
+  share-row:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink}"
+    rounded: "12px"
+    padding: "10px 12px"
 ---
 
 # Design System: MariachiTotal
@@ -261,6 +266,7 @@ Esquinas redondeadas y consistentes: 4–6px en códigos y marcas internas, 8px 
 - **Border:** 1px de línea suave; el evento lleva 2px del color de la agrupación.
 - **Internal Padding:** 20px en secciones, 16px en móvil, 12–15px en tarjetas compactas.
 - **Shadow Strategy:** ver *Ambient card* y *Dialog*.
+- **Share Row:** fila compacta del modal de compartir: fondo de tarjeta, borde de 1px, radio 12px y padding 10px 12px; nombre y pago a la izquierda, acciones «WhatsApp» y «Copiar» a la derecha. En móvil se envuelve sin recortar el texto.
 
 ### Chips / Badges
 - **Style:** pastilla (999px), 3px 9px, .72rem, peso 600; tinte del color semántico con texto del mismo tono.

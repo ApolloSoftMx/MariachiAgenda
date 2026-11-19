@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, useLoad, money, dateLong, mapsFor, nowStamp } from '../api.js'
 import { Loading, ErrorBox, Empty, Section, Badge, statusBadge, roleBadge, confirmAction, useNotify } from '../ui.jsx'
+import EventShareButton from '../EventShareButton.jsx'
 
 export default function Events() {
   const notify = useNotify()
@@ -77,6 +78,7 @@ export default function Events() {
                   {e.notes && <p className="notes">{e.notes}</p>}
                   <div className="event-actions">
                     <Link to={'/eventos/' + e.id} className="btn btn-ghost btn-sm">Ver / editar</Link>
+                    <EventShareButton event={e} small />
                     <button className="btn btn-danger btn-sm" onClick={() => remove(e)}>Eliminar</button>
                   </div>
                 </article>

@@ -8,7 +8,8 @@ Sistema de agenda, clientes y finanzas para un músico de mariachi. Funciona com
 - **Lista ordenada por fecha** y **vista de calendario** que marca los días libres.
 - **Tu grupo vs. invitado**: en cada evento indicas si eres el encargado o si otro encargado te invitó.
 - **Clientes** con nombre y teléfono (botones de WhatsApp y llamada), notas y total cobrado.
-- **Músicos por evento**: número planeado de músicos y, opcionalmente, nombre, teléfono, pago y marca de pagado por cada uno. Catálogo reutilizable.
+- **Músicos por evento**: número planeado de músicos y, opcionalmente, nombre, teléfono, pago y marca de pagado por cada uno. Catálogo reutilizable; los músicos nuevos capturados en el evento se dan de alta automáticamente (opcional).
+- **Compartir eventos**: botón 📤 en cada evento para copiar el mensaje o abrir WhatsApp. Los músicos con teléfono tienen un enlace individual con la logística y su propio pago.
 - **Finanzas**: total cobrado, anticipo, cuenta del depósito, pagos a músicos, otros gastos y **utilidad por rango de fechas** (reporte + exportación CSV).
 - **Cotizaciones**: registra propuestas con clientes, **tandas**, hora de fin estimada, músicos, total, vigencia y datos de depósito. Genera **PDF**, **imagen PNG** y un enlace público para el cliente. Al aceptar, crea el evento con las mismas tandas y fin calculado.
 - **Envío por WhatsApp sin API externa**: la app construye el mensaje y el enlace `wa.me/...`; tú eliges cuándo enviarlo. El mensaje incluye el enlace a la cotización y al PDF.

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api, useLoad, mapsFor } from '../api.js'
 import { Loading, ErrorBox, Field, Btn, Section, Modal, confirmAction, useNotify } from '../ui.jsx'
+import EventShareButton from '../EventShareButton.jsx'
 
 function defaultStart() {
   const d = new Date(Date.now() + 3600_000)
@@ -181,7 +182,10 @@ export default function EventForm() {
     <div className="stack-lg">
       <Section title={id ? 'Editar evento' : 'Nuevo evento'}
         subtitle={isGuest ? 'Agenda del evento y tu pago como invitado' : 'Agenda, lugar, clientes y finanzas de la presentación'}
-        actions={<Link to="/eventos" className="btn btn-ghost">← Volver a eventos</Link>}>
+        actions={<>
+          <Link to="/eventos" className="btn btn-ghost">← Volver a eventos</Link>
+          {id && <EventShareButton event={{ id }} />}
+        </>}>
         <form onSubmit={save} className="stack-lg">
           {error && <ErrorBox message={error} />}
 

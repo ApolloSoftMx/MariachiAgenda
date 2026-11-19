@@ -226,6 +226,13 @@
       "css": ".ds-badge { display: inline-flex; align-items: center; background: var(--success-bg, #e7f7ee); color: var(--success-ink, #12663c); border-radius: 999px; padding: 3px 9px; font: 600 .72rem Inter, system-ui, sans-serif; white-space: nowrap; }"
     },
     {
+      "name": "Share Row",
+      "kind": "card",
+      "description": "Fila del modal de compartir con un músico y sus acciones.",
+      "html": "<div class=\"ds-share-row\"><div><strong>Luis Pérez</strong><p>5512345678 · Pago $800.00</p></div><button class=\"ds-btn-ghost\">Copiar</button></div>",
+      "css": ".ds-share-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line, #e8e5f0); border-radius: 12px; background: var(--card, #fff); font: 400 15px/1.45 Inter, system-ui, sans-serif; } .ds-share-row p { margin: 0; color: var(--muted, #6b7280); font-size: .84rem; }"
+    },
+    {
       "name": "Sidebar Nav Item",
       "kind": "nav",
       "description": "Item de navegación lateral, con estado activo violeta.",

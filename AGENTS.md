@@ -33,7 +33,7 @@ Windows helpers: `iniciar.bat` (install/build/start + open browser) and `respald
 - `server/events.js` — shared event queries/save helper used by the web API and Telegram bot.
 - `server/pdf.js` — dependency-free PDF generator for quotes (Helvetica/WinAnsi).
 - `server/bot.js` — grammy long polling, link codes, reminders, admin approve/reject callbacks, guided `/nuevo` and quick `/evento` event creation.
-- `client/src/App.jsx` — auth gate, layout, routes, Google login button. `pages/` holds each view (including `Quotes.jsx`). `api.js` holds fetch helpers, `useLoad`, money/date formatters; `quote.js` builds share links and PNG downloads. `theme.jsx` provides light/dark/system theme via `localStorage` key `mariachitotal-theme` and `data-theme` on `<html>` (bootstrapped inline in root `index.html` to avoid flash); tokens live in `client/src/styles.css`.
+- `client/src/App.jsx` — auth gate, layout, routes, Google login button. `pages/` holds each view (including `Quotes.jsx`). `api.js` holds fetch helpers, `useLoad`, money/date formatters; `quote.js` builds share links and PNG downloads; `eventShare.js` builds event share messages and `wa.me` links (pure, no DOM) and `EventShareButton.jsx` renders the share modal in the event list/detail. `theme.jsx` provides light/dark/system theme via `localStorage` key `mariachitotal-theme` and `data-theme` on `<html>` (bootstrapped inline in root `index.html` to avoid flash); tokens live in `client/src/styles.css`.
 - DB file: `data/agenda.db` (auto-created). `data/` and `.env` are gitignored — never commit them.
 
 ## Two role levels (do not mix them)

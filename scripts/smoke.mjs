@@ -178,6 +178,27 @@ const noCatalogDetail = await call('GET', '/events/' + noCatalog.id)
 check('se puede desactivar el alta automática', noCatalogDetail.musicians[0].musician_id === null
   && !(await call('GET', '/musicians')).some((m) => m.name === 'Solo este evento'))
 
+// El botón de compartir genera el texto en el cliente (wa.me no adjunta archivos).
+const { buildEventMessage, personalMessage, waLink, waNumber } = await import('../client/src/eventShare.js')
+const shareEvent = {
+  title: 'Boda Ana', starts_at: '2026-12-12T19:00', ends_at: '2026-12-13T01:00', tandas: 6,
+  location_name: 'Salón El Rancho', address: 'Av. Juárez 123', band_name: 'Mariachi Sol',
+  notes: 'Traje negro',
+  musicians: [{ name: 'Luis Pérez', phone: '5512345678', payment_amount: 800, payment_per_tanda: 200, paid: true }]
+}
+const generalMessage = buildEventMessage(shareEvent)
+const personalMsg = personalMessage(generalMessage, shareEvent.musicians[0])
+check('mensaje de evento incluye fecha, lugar y músicos', generalMessage.includes('Boda Ana')
+  && generalMessage.includes('Salón El Rancho') && generalMessage.includes('Luis Pérez')
+  && generalMessage.includes('Ubicación en Maps') && !generalMessage.includes('800')
+  && !generalMessage.includes('p.m..'))
+check('mensaje personal solo muestra el pago del músico', personalMsg.includes('Hola Luis')
+  && personalMsg.includes('$800.00') && personalMsg.includes('ya pagado')
+  && personalMsg.includes('Boda Ana'))
+check('enlace de WhatsApp lleva el teléfono y el mensaje', waLink('5512345678', personalMsg)
+  === 'https://wa.me/525512345678?text=' + encodeURIComponent(personalMsg)
+  && waNumber('525512345678') === '525512345678')
+
 const report = await call('GET', '/reports?from=2026-12-01&to=2026-12-31')
 check('reporte cobrado', report.totals.charged === 15000)
 check('reporte pagado a músicos', report.totals.paidToMusicians === 900)
