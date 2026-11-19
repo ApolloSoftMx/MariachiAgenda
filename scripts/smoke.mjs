@@ -403,6 +403,17 @@ try {
 check('registro cerrado bloquea', closedBlocked)
 await call('PATCH', '/admin/config', { allowRegistration: true })
 
+const botTexts = await import('../server/bot.js')
+check('ayuda del bot incluye cancelar y opciones', botTexts.optionsText().includes('/cancelar')
+  && botTexts.optionsText().includes('/pendientes')
+  && botTexts.optionsText().startsWith('Opciones disponibles:'))
+check('comando desconocido ofrece opciones', botTexts.unknownCommandText('/foo').includes('No conozco ese comando: /foo')
+  && botTexts.unknownCommandText('/foo').includes('Opciones disponibles:'))
+check('cancelar sin borrador ofrece opciones', botTexts.cancelReplyText(false).includes('No hay ningún comando en curso.')
+  && botTexts.cancelReplyText(false).includes('/ayuda'))
+check('cancelar con borrador ofrece opciones', botTexts.cancelReplyText(true).includes('No guardé el borrador.')
+  && botTexts.cancelReplyText(true).includes('/nuevo'))
+
 const failed = results.filter(([, ok]) => !ok)
 await new Promise((r) => server.close(r))
 const { db } = await import('../server/db.js')

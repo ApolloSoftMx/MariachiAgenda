@@ -102,12 +102,14 @@ export default function Manual({ standalone = false }) {
           <thead><tr><th>Comando</th><th>Qué hace</th></tr></thead>
           <tbody>
             <tr><td><code>/nuevo</code></td><td>Asistente paso a paso para agendar un evento.</td></tr>
+            <tr><td><code>/cancelar</code></td><td>Cancela el asistente en curso. También aparece un botón <strong>✕ Cancelar</strong> en cada paso.</td></tr>
             <tr><td><code>/evento Título | AAAA-MM-DD HH:mm | Tandas | Lugar | Cliente | Músicos | Cobro</code></td><td>Crea un evento en una sola línea. Las tandas son horas.</td></tr>
             <tr><td><code>/pendientes</code></td><td>Solo super administrador: lista solicitudes de acceso y permite aprobar o rechazar.</td></tr>
+            <tr><td><code>/ayuda</code></td><td>Muestra las opciones disponibles.</td></tr>
           </tbody>
         </table></div>
         <div className="manual-note">
-          Los recordatorios se envían a los chats vinculados. Si no llegan, revisa que el bot esté activo y que tu chat aparezca como vinculado.
+          Los recordatorios se envían a los chats vinculados. Si no llegan, revisa que el bot esté activo y que tu chat aparezca como vinculado. Si un comando no tiene datos —por ejemplo, <code>/pendientes</code> sin solicitudes— o escribes uno que no existe, el bot responde con las opciones disponibles.
         </div>
 
         <h3>Ejemplo: mensajes que envía el bot</h3>

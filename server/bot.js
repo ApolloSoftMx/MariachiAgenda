@@ -125,6 +125,29 @@ const DRAFT_STEPS = [
   { key: 'charged_amount', prompt: '¿Cuánto vas a cobrar? Escribe `0` si aún no lo sabes.' }
 ]
 
+const COMMANDS = [
+  '/start CÓDIGO — vincular tu cuenta',
+  '/nuevo — agendar un evento paso a paso',
+  '/cancelar — cancelar el comando en curso',
+  '/evento Título | AAAA-MM-DD HH:mm | Tandas | Lugar | Cliente | Músicos | Cobro — alta rápida',
+  '/agenda — próximos 10 eventos',
+  '/hoy — eventos de hoy',
+  '/proximo — siguiente evento',
+  '/pendientes — registros por aprobar (solo admin)',
+  '/ayuda — ver estas opciones'
+]
+
+const KNOWN_COMMANDS = ['start', 'nuevo', 'agendar', 'cancelar', 'evento', 'agenda', 'hoy', 'proximo', 'pendientes', 'ayuda', 'help']
+
+const optionsText = () => `Opciones disponibles:\n${COMMANDS.map((line) => `• ${line}`).join('\n')}`
+const withOptions = (message) => `${message}\n\n${optionsText()}`
+const unknownCommandText = (command) => withOptions(`No conozco ese comando: ${command}`)
+const cancelReplyText = (hadDraft) => withOptions(hadDraft
+  ? 'Comando cancelado. No guardé el borrador.'
+  : 'No hay ningún comando en curso.')
+const linkMessage = () => 'Primero vincula tu cuenta desde la web: Configuración → Vincular Telegram.\n\nEscribe /ayuda para ver opciones.'
+const cancelMarkup = () => new InlineKeyboard().text('✕ Cancelar', 'event:cancel')
+
 function draftSummary(d) {
   return [
     '📝 Revisa el evento:',
@@ -147,8 +170,12 @@ async function askNextDraftStep(ctx, draft) {
         .text('✕ Cancelar', 'event:cancel')
     })
   }
-  return ctx.reply(DRAFT_STEPS[draft.step].prompt)
+  return ctx.reply(`${DRAFT_STEPS[draft.step].prompt}\n\nEscribe /cancelar si quieres salir.`, {
+    reply_markup: cancelMarkup()
+  })
 }
+
+export { optionsText, unknownCommandText, cancelReplyText }
 
 export function getBot() {
   return botInstance
@@ -214,10 +241,10 @@ export function startBot(config = {}) {
   bot.command('start', async (ctx) => {
     const code = String(ctx.match || '').trim().toUpperCase()
     if (!code) {
-      return ctx.reply('Hola 👋 Soy tu agenda de mariachi.\n\nPara vincular tu cuenta, abre la web → Configuración → «Vincular Telegram» y envíame el código con este comando:\n/start ABC123\n\nComandos: /agenda /hoy /proximo /pendientes /ayuda')
+      return ctx.reply(withOptions('Hola 👋 Soy tu agenda de mariachi.\n\nPara vincular tu cuenta, abre la web → Configuración → «Vincular Telegram» y envíame el código así: /start ABC123.'))
     }
     const user = one('SELECT * FROM users WHERE telegram_link_code = ? AND active = 1', code)
-    if (!user) return ctx.reply('Ese código no es válido o ya expiró. Genera uno nuevo en la web.')
+    if (!user) return ctx.reply(withOptions('Ese código no es válido o ya expiró. Genera uno nuevo en la web.'))
     const chatId = String(ctx.chat.id)
     run('UPDATE users SET telegram_chat_id = NULL WHERE telegram_chat_id = ? AND id <> ?', chatId, user.id)
     run('UPDATE users SET telegram_chat_id = ?, telegram_link_code = NULL WHERE id = ?', chatId, user.id)
@@ -226,42 +253,49 @@ export function startBot(config = {}) {
 
   bot.command('agenda', async (ctx) => {
     const { user } = linkedUser(ctx)
-    if (!user) return ctx.reply('Primero vincula tu cuenta desde la web: Configuración → Vincular Telegram.')
+    if (!user) return ctx.reply(linkMessage())
     const events = upcoming(10, false, user.role === 'admin' ? null : user.id)
-    if (!events.length) return ctx.reply('No tienes eventos próximos. ¡A agendar!')
+    if (!events.length) return ctx.reply(withOptions('No tienes eventos próximos. ¡A agendar!'))
     const text = events.map((e, i) => `${i + 1}. ${eventLine(e, false)}`).join('\n\n')
     await ctx.reply(`Próximos eventos\n\n${text}`)
   })
 
   bot.command('hoy', async (ctx) => {
     const { user } = linkedUser(ctx)
-    if (!user) return ctx.reply('Primero vincula tu cuenta desde la web: Configuración → Vincular Telegram.')
+    if (!user) return ctx.reply(linkMessage())
     const events = upcoming(20, true, user.role === 'admin' ? null : user.id)
-    if (!events.length) return ctx.reply('Hoy no tienes eventos.')
+    if (!events.length) return ctx.reply(withOptions('Hoy no tienes eventos.'))
     await ctx.reply(events.map((e) => eventLine(e)).join('\n\n'))
   })
 
   bot.command('proximo', async (ctx) => {
     const { user } = linkedUser(ctx)
-    if (!user) return ctx.reply('Primero vincula tu cuenta desde la web: Configuración → Vincular Telegram.')
+    if (!user) return ctx.reply(linkMessage())
     const events = upcoming(1, false, user.role === 'admin' ? null : user.id)
-    if (!events.length) return ctx.reply('No hay eventos próximos.')
+    if (!events.length) return ctx.reply(withOptions('No hay eventos próximos.'))
     await ctx.reply(eventLine(events[0]))
   })
 
   bot.command(['nuevo', 'agendar'], async (ctx) => {
     const { chatId, user } = linkedUser(ctx)
-    if (!user) return ctx.reply('Primero vincula tu cuenta desde la web: Configuración → Vincular Telegram.')
+    if (!user) return ctx.reply(linkMessage())
     eventDrafts.set(chatId, { chatId, userId: user.id, step: 0 })
-    await ctx.reply('Vamos a agendar un evento ✍️. Escribe `-` para omitir cualquier dato opcional.\n' + DRAFT_STEPS[0].prompt)
+    await ctx.reply('Vamos a agendar un evento ✍️. Escribe `-` para omitir cualquier dato opcional.\n\n'
+      + DRAFT_STEPS[0].prompt + '\n\nEscribe /cancelar si quieres salir.', { reply_markup: cancelMarkup() })
+  })
+
+  bot.command('cancelar', (ctx) => {
+    const chatId = String(ctx.chat?.id || ctx.from?.id || '')
+    const hadDraft = eventDrafts.delete(chatId)
+    return ctx.reply(cancelReplyText(hadDraft))
   })
 
   bot.command('evento', async (ctx) => {
     const { user } = linkedUser(ctx)
-    if (!user) return ctx.reply('Primero vincula tu cuenta desde la web: Configuración → Vincular Telegram.')
+    if (!user) return ctx.reply(linkMessage())
     const raw = String(ctx.match || '').trim()
     if (!raw) {
-      return ctx.reply('Uso rápido:\n`/evento Boda Ana | 2026-12-12 19:00 | 3 | Salón El Rancho | Ana López | 6 | 12000`\n\nEl tercer dato son las tandas (horas). O escribe /nuevo para que te guíe paso a paso.')
+      return ctx.reply(withOptions('Uso rápido:\n`/evento Boda Ana | 2026-12-12 19:00 | 3 | Salón El Rancho | Ana López | 6 | 12000`\n\nEl tercer dato son las tandas (horas). O escribe /nuevo para que te guíe paso a paso.'))
     }
     const parts = raw.split('|').map((p) => p.trim())
     const startsAt = parseStamp(parts[1])
@@ -295,20 +329,26 @@ export function startBot(config = {}) {
   })
 
   bot.on('message:text', async (ctx) => {
+    const text = String(ctx.message.text || '').trim()
     const { chatId } = linkedUser(ctx)
     const draft = eventDrafts.get(chatId)
+
+    if (text.startsWith('/')) {
+      const command = text.match(/^\/([A-Za-z_]+)/)?.[1]?.toLowerCase()
+      if (command && KNOWN_COMMANDS.includes(command)) return
+      return ctx.reply(unknownCommandText(text.split(/\s/)[0]))
+    }
+
     if (!draft || draft.step >= DRAFT_STEPS.length) return
-    const text = String(ctx.message.text || '').trim()
-    if (text.startsWith('/')) return
     const step = DRAFT_STEPS[draft.step]
 
     if (step.key === 'starts_at') {
       const stamp = parseStamp(text)
-      if (!stamp) return ctx.reply('Usa este formato: `2026-12-12 19:00` (año-mes-día hora:minuto).')
+      if (!stamp) return ctx.reply('Usa este formato: `2026-12-12 19:00` (año-mes-día hora:minuto). Escribe /cancelar para salir.')
       draft[step.key] = stamp
     } else if (step.key === 'tandas' || step.key === 'musicians_planned' || step.key === 'charged_amount') {
       const n = parseNumber(text)
-      if (n === null) return ctx.reply('Escribe solo un número, por ejemplo `6` o `12000`.')
+      if (n === null) return ctx.reply('Escribe solo un número, por ejemplo `6` o `12000`. Escribe /cancelar para salir.')
       draft[step.key] = n
     } else {
       draft[step.key] = text === '-' ? '' : text.slice(0, 160)
@@ -323,7 +363,7 @@ export function startBot(config = {}) {
     const admin = one("SELECT * FROM users WHERE telegram_chat_id = ? AND role = 'admin' AND active = 1", chatId)
     if (!admin) return ctx.reply('Solo el super administrador puede ver los registros pendientes.')
     const pending = all('SELECT id, name, email FROM users WHERE pending_approval = 1 ORDER BY created_at')
-    if (!pending.length) return ctx.reply('No hay registros pendientes. 🎉')
+    if (!pending.length) return ctx.reply(withOptions('No hay registros pendientes. 🎉'))
     for (const user of pending) {
       await ctx.reply(`👤 ${user.name}\n✉️ ${user.email}\n\n¿Le damos acceso?`, {
         reply_markup: new InlineKeyboard()
@@ -333,8 +373,7 @@ export function startBot(config = {}) {
     }
   })
 
-  bot.command(['ayuda', 'help'], (ctx) =>
-    ctx.reply('/start CÓDIGO — vincular tu cuenta\n/nuevo — agendar un evento paso a paso\n/evento Título | AAAA-MM-DD HH:mm | Lugar | Cliente | Músicos | Cobro — alta rápida\n/agenda — próximos 10 eventos\n/hoy — eventos de hoy\n/proximo — siguiente evento\n/pendientes — registros por aprobar (solo admin)\n/ayuda — esta ayuda'))
+  bot.command(['ayuda', 'help'], (ctx) => ctx.reply(optionsText()))
 
   bot.on('callback_query:data', async (ctx) => {
     const [action, idText] = String(ctx.callbackQuery.data || '').split(':')
@@ -342,11 +381,11 @@ export function startBot(config = {}) {
     if (action === 'event') {
       const { chatId } = linkedUser(ctx)
       const draft = eventDrafts.get(chatId)
-      if (!draft) return ctx.answerCallbackQuery({ text: 'Ese borrador ya no existe.' })
+      if (!draft) return ctx.answerCallbackQuery({ text: 'No había un borrador en curso. Usa /nuevo para empezar.' })
       if (idText === 'cancel') {
         eventDrafts.delete(chatId)
         await ctx.answerCallbackQuery({ text: 'Borrador cancelado' })
-        await ctx.editMessageText('Borrador cancelado.').catch(() => {})
+        await ctx.editMessageText('Borrador cancelado. Usa /nuevo para empezar o /ayuda para ver opciones.').catch(() => {})
         return
       }
       if (idText !== 'save') return ctx.answerCallbackQuery()

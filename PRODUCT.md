@@ -31,7 +31,7 @@ Cada tanda equivale a una hora y el pago se captura por tanda (del evento y de c
 - Registro abierto con aprobación de un super administrador; acceso con Google opcional.
 - Roles de sistema (`admin`/`user`) distintos de los roles por evento (`leader`/`guest`).
 - Cotizaciones públicas en `/q/:token`, con envío de comprobante y creación automática del evento al aceptar.
-- Bot de Telegram opcional para vincular cuenta, `/nuevo`, `/evento`, `/pendientes` y recordatorios.
+- Bot de Telegram opcional para vincular cuenta, `/nuevo`, `/cancelar`, `/evento`, `/pendientes` y recordatorios; responde con las opciones disponibles cuando un comando no tiene datos o no existe.
 - Despliegue local bajo Cloudflare Tunnel; misma URL para la app y el redirect de Google.
 
 ## Capabilities and Constraints

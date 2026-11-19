@@ -161,15 +161,18 @@ Comandos del bot:
 | --- | --- |
 | `/start CÓDIGO` | Vincula tu cuenta de la web con tu chat. |
 | `/nuevo` | Asistente paso a paso para agendar un evento. |
-| `/evento Título \| AAAA-MM-DD HH:mm \| Lugar \| Cliente \| Músicos \| Cobro` | Alta rápida de un evento. |
+| `/cancelar` | Cancela el asistente en curso; también hay un botón **✕ Cancelar** en cada paso. |
+| `/evento Título \| AAAA-MM-DD HH:mm \| Tandas \| Lugar \| Cliente \| Músicos \| Cobro` | Alta rápida de un evento. |
 | `/agenda`, `/hoy`, `/proximo` | Consulta los eventos de la agenda. |
 | `/pendientes` | Registros por aprobar (solo super administrador). |
-| `/ayuda` | Muestra esta ayuda. |
+| `/ayuda` | Muestra las opciones disponibles. |
+
+Si un comando no tiene datos (por ejemplo, `/pendientes` sin solicitudes) o escribes uno que no existe, el bot responde con la lista de opciones. `/cancelar` funciona aunque no haya nada en curso.
 
 Ejemplo de alta rápida:
 
 ```
-/evento Boda Ana | 2026-12-12 19:00 | Salón El Rancho | Ana López | 6 | 12000
+/evento Boda Ana | 2026-12-12 19:00 | 3 | Salón El Rancho | Ana López | 6 | 12000
 ```
 
 Escribe `-` en cualquier dato opcional para dejarlo vacío. Los eventos creados desde Telegram aparecen en la web con la nota «Agendado desde Telegram».
