@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS events (
   maps_url TEXT,
   status TEXT NOT NULL DEFAULT 'confirmed',
   tandas INTEGER NOT NULL DEFAULT 0,
+  rate_per_tanda REAL NOT NULL DEFAULT 0,
   musicians_planned INTEGER NOT NULL DEFAULT 0,
   charged_amount REAL NOT NULL DEFAULT 0,
   advance_amount REAL NOT NULL DEFAULT 0,
@@ -108,6 +109,7 @@ CREATE TABLE IF NOT EXISTS event_musicians (
   musician_id INTEGER REFERENCES musicians(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
   phone TEXT,
+  payment_per_tanda REAL NOT NULL DEFAULT 0,
   payment_amount REAL NOT NULL DEFAULT 0,
   paid INTEGER NOT NULL DEFAULT 0
 );
@@ -163,6 +165,7 @@ CREATE TABLE IF NOT EXISTS quotes (
   maps_url TEXT NOT NULL DEFAULT '',
   description TEXT NOT NULL DEFAULT '',
   tandas INTEGER NOT NULL DEFAULT 0,
+  rate_per_tanda REAL NOT NULL DEFAULT 0,
   musicians_planned INTEGER NOT NULL DEFAULT 0,
   amount REAL NOT NULL DEFAULT 0,
   deposit_amount REAL NOT NULL DEFAULT 0,
@@ -192,6 +195,14 @@ if (!eventColumns.includes('musicians_planned')) {
 if (!eventColumns.includes('tandas')) {
   db.exec('ALTER TABLE events ADD COLUMN tandas INTEGER NOT NULL DEFAULT 0')
 }
+if (!eventColumns.includes('rate_per_tanda')) {
+  db.exec('ALTER TABLE events ADD COLUMN rate_per_tanda REAL NOT NULL DEFAULT 0')
+}
+
+const eventMusicianColumns = db.prepare('PRAGMA table_info(event_musicians)').all().map((c) => c.name)
+if (!eventMusicianColumns.includes('payment_per_tanda')) {
+  db.exec('ALTER TABLE event_musicians ADD COLUMN payment_per_tanda REAL NOT NULL DEFAULT 0')
+}
 
 const userColumns = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name)
 if (!userColumns.includes('google_id')) db.exec('ALTER TABLE users ADD COLUMN google_id TEXT')
@@ -212,6 +223,9 @@ for (const column of ['location_name', 'address', 'maps_url', 'event_time', 'rec
 }
 if (!quoteColumns.includes('tandas')) {
   db.exec('ALTER TABLE quotes ADD COLUMN tandas INTEGER NOT NULL DEFAULT 0')
+}
+if (!quoteColumns.includes('rate_per_tanda')) {
+  db.exec('ALTER TABLE quotes ADD COLUMN rate_per_tanda REAL NOT NULL DEFAULT 0')
 }
 if (!quoteColumns.includes('deposit_amount')) {
   db.exec('ALTER TABLE quotes ADD COLUMN deposit_amount REAL NOT NULL DEFAULT 0')

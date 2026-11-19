@@ -55,7 +55,7 @@ export default function Calendar() {
                     <div className="calendar-events">
                       {items.slice(0, 3).map((e) => (
                         <span key={e.id} className="cal-pill"
-                          style={{ borderLeftColor: e.band_color || '#7c3aed' }}
+                          style={{ borderLeftColor: e.event_color || (e.role === 'guest' ? '#e11d48' : e.band_color || '#7c3aed') }}
                           title={e.title}>
                           {timeShort(e.starts_at)} {e.title}
                         </span>

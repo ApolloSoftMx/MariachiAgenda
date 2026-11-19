@@ -100,7 +100,8 @@ export default function Manual({ standalone = false }) {
           <Paso><strong>Calendario:</strong> los días con eventos se marcan como ocupados y los demás como libres. Toca un día para ver su detalle o <strong>«Agendar este día»</strong>.</Paso>
           <Paso><strong>Eventos → + Evento:</strong> captura título, fecha y hora de inicio, <strong>número de tandas</strong>, cliente, lugar, estatus (confirmado, pendiente o cancelado), músicos planeados y la lista de músicos con su pago individual.</Paso>
           <Paso><strong>Tandas = horas:</strong> cada tanda dura una hora. Al escribir, por ejemplo, <code>3</code> tandas con inicio a las 19:00, el sistema calcula automáticamente la fecha y hora de fin (22:00). Puedes ajustar el fin manualmente si lo necesitas.</Paso>
-          <Paso>Registra el <strong>cobro total</strong> y el <strong>anticipo</strong>. En el detalle del evento puedes ver el total pagado a músicos y tus notas.</Paso>
+          <Paso>Registra el <strong>pago por tanda</strong>. Si vas como invitado es lo que te pagarán; si es tu grupo es el precio por hora del evento. El <strong>total</strong> se calcula como <em>pago por tanda × número de tandas</em>, pero puedes ajustarlo si hubo bonos o descuentos. También captura el <strong>anticipo</strong>.</Paso>
+          <Paso>En la lista de músicos puedes poner el <strong>pago por tanda de cada músico</strong>. Su pago total se calcula con las tandas del evento y también se puede ajustar manualmente. En el detalle del evento ves el total pagado a músicos y tus notas.</Paso>
           <Paso>El rol del evento puede ser <Badge tone="purple">Mi grupo (encargado)</Badge> o <Badge tone="blue">Invitado / otro encargado</Badge>. Un mismo usuario puede ser encargado en unos eventos e invitado en otros.</Paso>
         </Pasos>
       </Section>
@@ -110,7 +111,7 @@ export default function Manual({ standalone = false }) {
         <p>Guarda nombre, teléfono y notas. Con el teléfono se generan los enlaces de WhatsApp y llamada directamente desde la lista.</p>
         <h3>Cotizaciones</h3>
         <Pasos>
-          <Paso><strong>Cotizaciones → + Nueva cotización:</strong> llena título, cliente, fecha, hora de inicio, <strong>tandas</strong>, lugar, dirección (o enlace de Google Maps), músicos planeados, total, depósito, vigencia y cuenta para depósito. El campo <strong>Fin estimado</strong> se calcula solo al sumar las tandas a la hora de inicio.</Paso>
+          <Paso><strong>Cotizaciones → + Nueva cotización:</strong> llena título, cliente, fecha, hora de inicio, <strong>tandas</strong>, <strong>pago por tanda</strong>, lugar, dirección (o enlace de Google Maps), músicos planeados, depósito, vigencia y cuenta para depósito. El <strong>Fin estimado</strong> se calcula sumando las tandas a la hora de inicio, y el <strong>total</strong> es pago por tanda × tandas (editable).</Paso>
           <Paso>Si el cliente aún no existe, elige <strong>«➕ Crear nuevo cliente…»</strong>: capturas nombre, teléfono y notas, y al guardar se da de alta en Clientes y queda ligado a la cotización.</Paso>
           <Paso>Con <strong>«Enviar»</strong> obtienes un mensaje listo para WhatsApp, el PDF, una imagen PNG y un enlace público para el cliente. WhatsApp no adjunta archivos desde un enlace <code>wa.me</code>: el PDF y la imagen se comparten por enlace o se descargan.</Paso>
           <Paso>En la página pública del cliente puede subir su <strong>comprobante de depósito</strong> (PNG, JPG, WebP o PDF, hasta 10 MB). Al aceptarlo, la cotización pasa a <Badge tone="green">Aceptada</Badge> y se crea un evento confirmado usando la fecha, la hora, las tandas (con su fin calculado) y el depósito como anticipo.</Paso>
@@ -133,7 +134,7 @@ export default function Manual({ standalone = false }) {
             <tr><td><Badge tone="gray">Usuario</Badge></td><td>Ve y administra únicamente lo que él creó. Los catálogos (clientes, músicos, agrupaciones y cuentas) son compartidos.</td></tr>
           </tbody>
         </table></div>
-        <p className="muted small">Los dos perfiles son distintos al rol del evento: <em>leader</em> (mi grupo) y <em>guest</em> (invitado). Un usuario puede tener roles distintos en eventos diferentes.</p>
+        <p className="muted small">Los dos perfiles son distintos al rol del evento: <em>leader</em> (mi grupo) y <em>guest</em> (invitado). Un usuario puede tener roles distintos en eventos diferentes. En el calendario y la lista, los eventos de tu grupo usan el color de la agrupación y los eventos como invitado usan un color propio que el super administrador puede cambiar en <strong>Configuración → Color de eventos como invitado</strong>.</p>
       </Section>
 
       <Section title="9. Instalar la app en tu celular" id="instalar">

@@ -94,7 +94,7 @@ const event = await call('POST', '/events', {
   title: 'Boda Ana', starts_at: '2026-12-12T19:00', tandas: 6,
   band_id: band.id, client_id: client.id, location_name: 'Salón El Rancho',
   address: 'Av. Juárez 123, CDMX', status: 'confirmed',
-  charged_amount: 12000, advance_amount: 5000, advance_account_id: account.id,
+  rate_per_tanda: 2000, advance_amount: 5000, advance_account_id: account.id,
   musicians_planned: 6, notes: 'Llevar traje negro',
   musicians: [
     { musician_id: musician.id, name: 'Luis', phone: '5599998888', payment_amount: 800, paid: true },
@@ -104,14 +104,26 @@ const event = await call('POST', '/events', {
 check('evento creado con músicos', event.id && event.musician_count === 2 && event.musician_total === 1300)
 check('número de músicos planeado', event.musicians_planned === 6)
 check('tandas guardadas y fin calculado', event.tandas === 6 && event.ends_at === '2026-12-13T01:00')
+check('pago por tanda del evento calcula total', event.rate_per_tanda === 2000 && event.charged_amount === 12000)
 check('rol derivado de agrupación', event.role === 'leader')
+check('color de evento propio', event.event_color === '#7c3aed')
 
 const guestEvent = await call('POST', '/events', {
   title: 'Fiesta privada', starts_at: '2026-12-20T20:00', band_id: guestBand.id,
-  client_id: client.id, charged_amount: 3000, advance_amount: 0,
-  musicians: [{ name: 'Luis', payment_amount: 400, paid: false }]
+  client_id: client.id, tandas: 3, rate_per_tanda: 1000, advance_amount: 0,
+  musicians: [{ name: 'Luis', payment_per_tanda: 150, paid: false }]
 })
 check('evento como invitado', guestEvent.role === 'guest')
+check('tarifa por tanda en invitado', guestEvent.rate_per_tanda === 1000 && guestEvent.charged_amount === 3000)
+const guestDetail = await call('GET', '/events/' + guestEvent.id)
+check('pago por tanda de músico calcula total', guestDetail.musicians[0].payment_per_tanda === 150
+  && guestDetail.musicians[0].payment_amount === 450)
+check('color de evento invitado', guestEvent.event_color === '#e11d48')
+const publicConfig = await call('GET', '/config')
+check('config expone color de invitado', publicConfig.guestColor === '#e11d48')
+await call('PATCH', '/admin/config', { guestColor: '#ff0000' })
+check('color de invitado configurable', (await call('GET', '/events/' + guestEvent.id)).event_color === '#ff0000')
+await call('PATCH', '/admin/config', { guestColor: '#e11d48' })
 
 const list = await call('GET', '/events?from=2026-12-01&to=2026-12-31')
 check('lista por rango', list.length === 2 && list[0].starts_at < list[1].starts_at)
@@ -140,13 +152,14 @@ const quote = await call('POST', '/quotes', {
   client_id: client.id, title: 'Boda Ana · propuesta', event_date: '2026-12-12', event_time: '19:00',
   location_name: 'Salón El Rancho', address: 'Av. Principal 123',
   description: 'Mariachi para ceremonia y banquete', tandas: 3, musicians_planned: 6,
-  amount: 12000, deposit_amount: 500, valid_until: '2026-11-30', status: 'draft',
+  rate_per_tanda: 4000, deposit_amount: 500, valid_until: '2026-11-30', status: 'draft',
   deposit_account_id: account.id, deposit_details: 'Referencia BODA-ANA'
 })
 check('cotización creada', quote.id && quote.share_token && quote.client_name === 'Ana López')
 check('cotización con ubicación', quote.location_name === 'Salón El Rancho' && quote.address === 'Av. Principal 123')
 check('cotización con hora y depósito', quote.event_time === '19:00' && quote.deposit_amount === 500)
 check('cotización con tandas', quote.tandas === 3)
+check('cotización calcula total por tanda', quote.rate_per_tanda === 4000 && quote.amount === 12000)
 
 const pdfRes = await fetch(base + `/quotes/${quote.id}/pdf`, { headers: { Cookie: cookie } })
 const pdfBytes = Buffer.from(await pdfRes.arrayBuffer())

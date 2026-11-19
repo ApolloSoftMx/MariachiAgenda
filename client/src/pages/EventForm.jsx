@@ -11,7 +11,7 @@ function defaultStart() {
 }
 
 const blankForm = (date) => ({
-  title: '', starts_at: date ? date + 'T10:00' : defaultStart(), ends_at: '', tandas: 1,
+  title: '', starts_at: date ? date + 'T10:00' : defaultStart(), ends_at: '', tandas: 1, rate_per_tanda: 0,
   band_id: '', role: 'leader', client_id: '', location_name: '', address: '', maps_url: '',
   status: 'confirmed', musicians_planned: 0, charged_amount: 0, advance_amount: 0,
   advance_account_id: '', notes: '', musicians: []
@@ -27,7 +27,13 @@ function endsFromTandas(start, tandas) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-const emptyMusician = () => ({ musician_id: '', name: '', phone: '', payment_amount: 0, paid: false })
+const emptyMusician = () => ({ musician_id: '', name: '', phone: '', payment_per_tanda: 0, payment_amount: 0, paid: false })
+
+const amountFromRate = (rate, tandas) => {
+  const r = Number(rate) || 0
+  const t = Math.round(Number(tandas)) || 0
+  return r > 0 && t > 0 ? Number((r * t).toFixed(2)) : 0
+}
 
 export default function EventForm() {
   const { id } = useParams()
@@ -52,11 +58,13 @@ export default function EventForm() {
       ...e,
       ends_at: e.ends_at || '',
       tandas: e.tandas || 0,
+      rate_per_tanda: e.rate_per_tanda || 0,
       band_id: e.band_id || '',
       client_id: e.client_id || '',
       advance_account_id: e.advance_account_id || '',
       musicians: (e.musicians || []).map((m) => ({
         musician_id: m.musician_id || '', name: m.name, phone: m.phone || '',
+        payment_per_tanda: m.payment_per_tanda || 0,
         payment_amount: m.payment_amount, paid: Boolean(m.paid)
       }))
     })
@@ -68,13 +76,30 @@ export default function EventForm() {
   const [bands, clients, accounts, catalog] = refs.data || [[], [], [], []]
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }))
   const setTandas = (value) => setForm((f) => ({
-    ...f, tandas: value, ends_at: endsFromTandas(f.starts_at, value) || f.ends_at
+    ...f,
+    tandas: value,
+    ends_at: endsFromTandas(f.starts_at, value) || f.ends_at,
+    charged_amount: Number(f.rate_per_tanda) > 0 ? amountFromRate(f.rate_per_tanda, value) : f.charged_amount,
+    musicians: f.musicians.map((m) => Number(m.payment_per_tanda) > 0
+      ? { ...m, payment_amount: amountFromRate(m.payment_per_tanda, value) } : m)
   }))
   const setStart = (value) => setForm((f) => ({
     ...f, starts_at: value, ends_at: endsFromTandas(value, f.tandas) || f.ends_at
   }))
+  const setRate = (value) => setForm((f) => ({
+    ...f, rate_per_tanda: value,
+    charged_amount: Number(value) > 0 ? amountFromRate(value, f.tandas) : f.charged_amount
+  }))
   const setMusician = (index, key, value) =>
     setForm((f) => ({ ...f, musicians: f.musicians.map((m, i) => i === index ? { ...m, [key]: value } : m) }))
+  const setMusicianRate = (index, value) => setForm((f) => ({
+    ...f,
+    musicians: f.musicians.map((m, i) => i === index ? {
+      ...m,
+      payment_per_tanda: value,
+      payment_amount: Number(value) > 0 ? amountFromRate(value, f.tandas) : m.payment_amount
+    } : m)
+  }))
 
   function pickMusician(index, musicianId) {
     const found = (catalog || []).find((m) => String(m.id) === String(musicianId))
@@ -85,7 +110,8 @@ export default function EventForm() {
         musician_id: musicianId ? Number(musicianId) : '',
         name: found?.name || '',
         phone: found?.phone || '',
-        payment_amount: m.payment_amount || found?.default_payment || 0
+        payment_amount: Number(m.payment_per_tanda) > 0
+          ? m.payment_amount : (m.payment_amount || found?.default_payment || 0)
       } : m)
     }))
   }
@@ -119,11 +145,13 @@ export default function EventForm() {
       band_id: form.band_id || null,
       client_id: form.client_id || null,
       advance_account_id: form.advance_account_id || null,
+      rate_per_tanda: Number(form.rate_per_tanda) || 0,
       charged_amount: Number(form.charged_amount) || 0,
       advance_amount: Number(form.advance_amount) || 0,
       musicians: form.musicians.filter((m) => m.name.trim()).map((m) => ({
         musician_id: m.musician_id || null,
         name: m.name.trim(), phone: m.phone || '',
+        payment_per_tanda: Number(m.payment_per_tanda) || 0,
         payment_amount: Number(m.payment_amount) || 0, paid: Boolean(m.paid)
       }))
     }
@@ -219,7 +247,17 @@ export default function EventForm() {
           <div className="form-card">
             <h3>Finanzas del evento</h3>
             <div className="grid-2">
-              <Field label="Total que se cobró"><input type="number" step="0.01" value={form.charged_amount} onChange={(e) => set('charged_amount', e.target.value)} /></Field>
+              <Field
+                label={form.role === 'guest' ? 'Pago por tanda (lo que te pagan)' : 'Pago por tanda (precio al cliente)'}
+                hint={`Al cambiar la tarifa o las tandas se calcula el total (tarifa × ${form.tandas || 0} tandas).`}
+              >
+                <input type="number" min="0" step="0.01" value={form.rate_per_tanda}
+                  onChange={(e) => setRate(e.target.value)} />
+              </Field>
+              <Field label={form.role === 'guest' ? 'Total que te pagarán' : 'Total que se cobró'}
+                hint="Puedes ajustarlo manualmente si hubo bonos o descuentos.">
+                <input type="number" step="0.01" value={form.charged_amount} onChange={(e) => set('charged_amount', e.target.value)} />
+              </Field>
               <Field label="Anticipo recibido"><input type="number" step="0.01" value={form.advance_amount} onChange={(e) => set('advance_amount', e.target.value)} /></Field>
               <Field label="Cuenta del depósito">
                 <select value={form.advance_account_id} onChange={(e) => set('advance_account_id', e.target.value)}>
@@ -241,7 +279,7 @@ export default function EventForm() {
                   onChange={(e) => set('musicians_planned', e.target.value)} />
               </Field>
             </div>
-            {form.musicians.length === 0 && <p className="muted small">Opcional: agrega nombres, teléfonos y lo que se les pagará a cada uno.</p>}
+            {form.musicians.length === 0 && <p className="muted small">Opcional: agrega nombres, teléfonos, pago por tanda y lo que se les pagará a cada uno.</p>}
             <div className="stack">
               {form.musicians.map((m, i) => (
                 <div key={i} className="musician-row">
@@ -251,7 +289,9 @@ export default function EventForm() {
                   </select>
                   <input value={m.name} onChange={(e) => setMusician(i, 'name', e.target.value)} placeholder="Nombre" />
                   <input value={m.phone} onChange={(e) => setMusician(i, 'phone', e.target.value)} placeholder="Teléfono" />
-                  <input type="number" step="0.01" value={m.payment_amount} onChange={(e) => setMusician(i, 'payment_amount', e.target.value)} placeholder="Pago" aria-label="Pago" />
+                  <input type="number" min="0" step="0.01" value={m.payment_per_tanda}
+                    onChange={(e) => setMusicianRate(i, e.target.value)} placeholder="Pago x tanda" aria-label="Pago por tanda" title="Pago por tanda; el total se calcula con las tandas del evento" />
+                  <input type="number" step="0.01" value={m.payment_amount} onChange={(e) => setMusician(i, 'payment_amount', e.target.value)} placeholder="Pago total" aria-label="Pago total" title="Puedes ajustarlo manualmente" />
                   <label className="check"><input type="checkbox" checked={m.paid} onChange={(e) => setMusician(i, 'paid', e.target.checked)} /> Pagado</label>
                   <button type="button" className="icon-btn" onClick={() => setForm((f) => ({ ...f, musicians: f.musicians.filter((_, j) => j !== i) }))} aria-label="Quitar músico">✕</button>
                 </div>

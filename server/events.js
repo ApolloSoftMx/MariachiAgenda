@@ -1,5 +1,24 @@
 import { all, one, run, db } from './db.js'
 import { addHoursToStamp, normalizeTandas } from './datetime.js'
+import { setting } from './settings.js'
+
+const OWN_COLOR = '#7c3aed'
+const GUEST_COLOR = '#e11d48'
+
+export function eventColors() {
+  return {
+    own: OWN_COLOR,
+    guest: setting('guest_color', 'GUEST_EVENT_COLOR', GUEST_COLOR) || GUEST_COLOR
+  }
+}
+
+function withColors(rows) {
+  const colors = eventColors()
+  return (rows || []).map((row) => row && {
+    ...row,
+    event_color: row.role === 'guest' ? colors.guest : (row.band_color || colors.own)
+  })
+}
 
 export const EVENT_SELECT = `
   SELECT e.*, c.name AS client_name, c.phone AS client_phone,
@@ -14,7 +33,7 @@ export const EVENT_SELECT = `
   LEFT JOIN accounts a ON a.id = e.advance_account_id
 `
 
-export const getEvent = (id) => one(EVENT_SELECT + ' WHERE e.id = ?', id)
+export const getEvent = (id) => withColors([one(EVENT_SELECT + ' WHERE e.id = ?', id)])[0]
 
 export function listEvents({ from, to, status, band_id, limit, viewer } = {}) {
   const where = []
@@ -26,18 +45,21 @@ export function listEvents({ from, to, status, band_id, limit, viewer } = {}) {
   if (viewer && viewer.role !== 'admin') { where.push('e.created_by = ?'); params.push(viewer.id) }
   const clause = where.length ? ' WHERE ' + where.join(' AND ') : ''
   const lim = limit ? ' LIMIT ' + Math.min(Number(limit), 2000) : ''
-  return all(EVENT_SELECT + clause + ' ORDER BY e.starts_at ASC, e.id ASC' + lim, ...params)
+  return withColors(all(EVENT_SELECT + clause + ' ORDER BY e.starts_at ASC, e.id ASC' + lim, ...params))
 }
 
 export function saveEvent(data, id = null, createdBy = null, options = {}) {
   const band = data.band_id ? one('SELECT kind FROM bands WHERE id = ?', data.band_id) : null
   const role = band ? (band.kind === 'guest' ? 'guest' : 'leader') : (data.role || 'leader')
   const tandas = normalizeTandas(data.tandas)
+  const ratePerTanda = Number(data.rate_per_tanda) || 0
+  const hasCharged = data.charged_amount !== undefined && data.charged_amount !== null && data.charged_amount !== ''
   const columns = {
     title: data.title,
     starts_at: data.starts_at,
     ends_at: tandas > 0 ? addHoursToStamp(data.starts_at, tandas) : (data.ends_at ?? null),
     tandas,
+    rate_per_tanda: ratePerTanda,
     band_id: data.band_id ?? null,
     role,
     client_id: data.client_id ?? null,
@@ -46,7 +68,7 @@ export function saveEvent(data, id = null, createdBy = null, options = {}) {
     maps_url: data.maps_url ?? '',
     status: data.status || 'confirmed',
     musicians_planned: Number(data.musicians_planned) || 0,
-    charged_amount: Number(data.charged_amount) || 0,
+    charged_amount: hasCharged ? (Number(data.charged_amount) || 0) : (ratePerTanda > 0 ? ratePerTanda * tandas : 0),
     advance_amount: Number(data.advance_amount) || 0,
     advance_account_id: data.advance_account_id ?? null,
     notes: data.notes ?? ''
@@ -67,10 +89,14 @@ export function saveEvent(data, id = null, createdBy = null, options = {}) {
       id = Number(info.lastInsertRowid)
     }
     for (const m of musicians) {
-      run(`INSERT INTO event_musicians (event_id, musician_id, name, phone, payment_amount, paid)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+      const rate = Number(m.payment_per_tanda) || 0
+      const hasPayment = m.payment_amount !== undefined && m.payment_amount !== null && m.payment_amount !== ''
+      const payment = hasPayment ? (Number(m.payment_amount) || 0)
+        : (rate > 0 && tandas > 0 ? rate * tandas : 0)
+      run(`INSERT INTO event_musicians (event_id, musician_id, name, phone, payment_per_tanda, payment_amount, paid)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
         id, m.musician_id ?? null, String(m.name || '').trim(),
-        m.phone || '', Number(m.payment_amount) || 0, m.paid ? 1 : 0)
+        m.phone || '', rate, payment, m.paid ? 1 : 0)
     }
     if (manageTransaction) db.exec('COMMIT')
   } catch (err) {

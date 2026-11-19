@@ -47,6 +47,9 @@ export function buildQuoteLines(quote) {
     lines.push([`Tandas: ${quote.tandas} (${quote.tandas} h) · Fin estimado: ${quoteEndStamp(quote)}`, 11, metaY])
     metaY -= 18
   }
+  if (Number(quote.rate_per_tanda) > 0) {
+    lines.push([`Pago por tanda: ${moneyText(quote.rate_per_tanda)}`, 11, metaY]); metaY -= 18
+  }
   if (quote.valid_until) { lines.push([`Vigencia: ${quote.valid_until}`, 11, metaY]); metaY -= 18 }
   lines.push([`Músicos planeados: ${quote.musicians_planned || 0}`, 11, metaY])
   lines.push([`Total: ${moneyText(quote.amount)}`, 14, metaY - 24])

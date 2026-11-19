@@ -117,7 +117,8 @@ function AdminConfigCard() {
       googleClientId: data.googleClientId || '',
       googleClientSecret: '',
       allowRegistration: Boolean(data.allowRegistration),
-      allowGoogleSignup: Boolean(data.allowGoogleSignup)
+      allowGoogleSignup: Boolean(data.allowGoogleSignup),
+      guestColor: data.guestColor || '#e11d48'
     })
   }, [data])
 
@@ -134,7 +135,8 @@ function AdminConfigCard() {
         googleClientId: form.googleClientId,
         googleClientSecret: form.googleClientSecret,
         allowRegistration: form.allowRegistration,
-        allowGoogleSignup: form.allowGoogleSignup
+        allowGoogleSignup: form.allowGoogleSignup,
+        guestColor: form.guestColor
       })
       setForm((f) => ({ ...f, botToken: '', googleClientSecret: '' }))
       reload()
@@ -222,6 +224,22 @@ function AdminConfigCard() {
             {(data.googleClientId || data.googleClientSecretSet) && (
               <button type="button" className="link-btn" onClick={clearGoogle}>Quitar Google</button>
             )}
+          </div>
+        </div>
+
+        <div className="form-card">
+          <h3>Color de eventos como invitado</h3>
+          <p className="muted small">
+            Los eventos de tu grupo usan el color de la agrupación. Los eventos en los que vas como invitado
+            se muestran con este color en el calendario y la lista de eventos.
+          </p>
+          <div className="row gap" style={{ alignItems: 'center' }}>
+            <Field label="Color para invitados">
+              <input type="color" value={form.guestColor}
+                onChange={(e) => setForm({ ...form, guestColor: e.target.value })} />
+            </Field>
+            <span className="color-dot" style={{ background: form.guestColor, width: 28, height: 28 }} />
+            <code className="inline-code">{form.guestColor}</code>
           </div>
         </div>
 

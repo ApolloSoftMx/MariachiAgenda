@@ -11,7 +11,7 @@ import {
 } from './auth.js'
 import { listBackups, createBackup, backupPath, removeBackup } from './backup.js'
 import { quotePdf, statusLabel, mapsForQuote } from './pdf.js'
-import { getEvent, listEvents, saveEvent } from './events.js'
+import { getEvent, listEvents, saveEvent, eventColors } from './events.js'
 import { quoteEndStamp } from './datetime.js'
 import { setting, getSetting, setSetting, deleteSetting, boolSetting } from './settings.js'
 import { getBot, restartBot, notifyAdminsAboutRegistration } from './bot.js'
@@ -34,7 +34,8 @@ const zMusician = z.object({
   musician_id: nullableInt.optional().default(null),
   name: z.string().min(1).max(120),
   phone: z.string().max(40).optional().default(''),
-  payment_amount: money.optional().default(0),
+  payment_per_tanda: money.optional().default(0),
+  payment_amount: money.optional(),
   paid: bool.optional().default(false)
 })
 
@@ -50,11 +51,12 @@ const zEvent = z.object({
   maps_url: z.string().max(600).optional().default(''),
   status: z.enum(['confirmed', 'pending', 'cancelled']).optional().default('confirmed'),
   tandas: tandasSchema.optional().default(0),
+  rate_per_tanda: money.optional().default(0),
   musicians_planned: z.preprocess(
     (v) => (v === '' || v === undefined || v === null ? 0 : Number(v)),
     z.number().int().min(0).max(200)
   ).optional().default(0),
-  charged_amount: money.optional().default(0),
+  charged_amount: money.optional(),
   advance_amount: money.optional().default(0),
   advance_account_id: nullableInt.optional().default(null),
   notes: z.string().optional().default(''),
@@ -148,7 +150,8 @@ export function createApp(config = {}) {
       subscriptionsEnabled: boolSetting('subscriptions_enabled', 'ENABLE_SUBSCRIPTIONS', false),
       registrationEnabled: boolSetting('allow_registration', 'ALLOW_REGISTRATION', true),
       googleEnabled: google.enabled,
-      googleSignupEnabled: boolSetting('allow_google_signup', 'ALLOW_GOOGLE_SIGNUP', true)
+      googleSignupEnabled: boolSetting('allow_google_signup', 'ALLOW_GOOGLE_SIGNUP', true),
+      guestColor: eventColors().guest
     })
   })
 
@@ -458,6 +461,7 @@ export function createApp(config = {}) {
       googleRedirectUri: google.redirectUri,
       allowRegistration: boolSetting('allow_registration', 'ALLOW_REGISTRATION', true),
       allowGoogleSignup: boolSetting('allow_google_signup', 'ALLOW_GOOGLE_SIGNUP', true),
+      guestColor: eventColors().guest,
       appUrl: process.env.APP_URL || '',
       pendingCount: one('SELECT COUNT(*) AS n FROM users WHERE pending_approval = 1').n
     })
@@ -471,6 +475,7 @@ export function createApp(config = {}) {
       googleClientSecret: z.string().max(300).optional(),
       allowRegistration: bool.optional(),
       allowGoogleSignup: bool.optional(),
+      guestColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Color inválido').optional(),
       clearBotToken: bool.optional(),
       clearGoogle: bool.optional()
     })
@@ -512,6 +517,7 @@ export function createApp(config = {}) {
     if (d.allowGoogleSignup !== undefined) {
       setSetting('allow_google_signup', d.allowGoogleSignup ? 'true' : 'false')
     }
+    if (d.guestColor !== undefined) setSetting('guest_color', d.guestColor)
 
     if (restart) {
       try {
@@ -530,6 +536,7 @@ export function createApp(config = {}) {
       botUsername: setting('bot_username', 'BOT_USERNAME', config.botUsername || ''),
       googleEnabled: googleConfig(req).enabled,
       registrationEnabled: boolSetting('allow_registration', 'ALLOW_REGISTRATION', true),
+      guestColor: eventColors().guest,
       appUrl: process.env.APP_URL || '',
       node: process.version,
       dbPath: process.env.DB_PATH || './data/agenda.db',
@@ -706,6 +713,7 @@ export function createApp(config = {}) {
     maps_url: z.string().max(600).optional().default(''),
     description: z.string().optional().default(''),
     tandas: tandasSchema.optional().default(0),
+    rate_per_tanda: money.optional().default(0),
     musicians_planned: z.preprocess(
       (v) => (v === '' || v === undefined || v === null ? 0 : Number(v)),
       z.number().int().min(0).max(200)
@@ -748,6 +756,7 @@ export function createApp(config = {}) {
       `Te comparto la cotización «${quote.title}».`,
       quote.event_date ? `Fecha del evento: ${quote.event_date}.` : '',
       quote.tandas > 0 ? `Tandas: ${quote.tandas} (${quote.tandas} hora${quote.tandas === 1 ? '' : 's'}). Termina: ${quoteEndStamp(quote)}.` : '',
+      Number(quote.rate_per_tanda) > 0 ? `Pago por tanda: $${Number(quote.rate_per_tanda).toFixed(2)}.` : '',
       place ? `Lugar: ${place}.` : '',
       maps ? `Ubicación en Maps: ${maps}` : '',
       `Total: $${Number(quote.amount || 0).toFixed(2)}`,
@@ -792,17 +801,22 @@ export function createApp(config = {}) {
   })
 
   app.post('/api/quotes', requireAuth, subGuard, (req, res) => {
-    const parsed = zQuote.safeParse(req.body || {})
+    const raw = req.body || {}
+    const parsed = zQuote.safeParse(raw)
     if (!parsed.success) return res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() })
     const d = parsed.data
+    if ((raw.amount === undefined || raw.amount === null || raw.amount === '')
+      && d.rate_per_tanda > 0 && d.tandas > 0) {
+      d.amount = Number((d.rate_per_tanda * d.tandas).toFixed(2))
+    }
     const token = crypto.randomBytes(12).toString('hex')
     const info = run(`INSERT INTO quotes
       (client_id, title, event_date, event_time, location_name, address, maps_url, description,
-       tandas, musicians_planned, amount, deposit_amount, valid_until, status, deposit_account_id,
+       tandas, rate_per_tanda, musicians_planned, amount, deposit_amount, valid_until, status, deposit_account_id,
        deposit_details, notes, share_token, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       d.client_id, d.title, d.event_date, d.event_time, d.location_name, d.address, d.maps_url,
-      d.description, d.tandas, d.musicians_planned, d.amount, d.deposit_amount, d.valid_until, d.status,
+      d.description, d.tandas, d.rate_per_tanda, d.musicians_planned, d.amount, d.deposit_amount, d.valid_until, d.status,
       d.deposit_account_id, d.deposit_details, d.notes, token, req.user.id)
     res.status(201).json(getQuote(Number(info.lastInsertRowid)))
   })
@@ -810,13 +824,19 @@ export function createApp(config = {}) {
   app.patch('/api/quotes/:id', requireAuth, subGuard, (req, res) => {
     const quote = getQuote(idParam(req))
     if (!quote || !canAccess(req.user, quote)) return notFound(res)
-    const parsed = zQuote.partial().safeParse(req.body || {})
+    const raw = req.body || {}
+    const parsed = zQuote.partial().safeParse(raw)
     if (!parsed.success) return res.status(400).json({ error: 'Datos inválidos' })
     const d = parsed.data
+    if (raw.amount === undefined && (raw.rate_per_tanda !== undefined || raw.tandas !== undefined)) {
+      const rate = d.rate_per_tanda ?? quote.rate_per_tanda
+      const tandas = d.tandas ?? quote.tandas
+      if (rate > 0 && tandas > 0) d.amount = Number((rate * tandas).toFixed(2))
+    }
     const fields = []
     const values = []
     for (const key of ['client_id', 'title', 'event_date', 'event_time', 'location_name',
-      'address', 'maps_url', 'description', 'tandas', 'musicians_planned', 'amount', 'deposit_amount',
+      'address', 'maps_url', 'description', 'tandas', 'rate_per_tanda', 'musicians_planned', 'amount', 'deposit_amount',
       'valid_until', 'status', 'deposit_account_id', 'deposit_details', 'notes']) {
       if (d[key] !== undefined) { fields.push(`${key} = ?`); values.push(d[key]) }
     }
@@ -912,6 +932,7 @@ export function createApp(config = {}) {
         maps_url: quote.maps_url,
         status: 'confirmed',
         tandas: quote.tandas,
+        rate_per_tanda: quote.rate_per_tanda,
         musicians_planned: quote.musicians_planned,
         charged_amount: quote.amount,
         advance_amount: quote.deposit_amount,
@@ -1025,6 +1046,7 @@ ${row('Fecha del evento', quote.event_date)}
 ${row('Hora', quote.event_time || '19:00')}
 ${Number(quote.tandas) > 0 ? row('Tandas', `${quote.tandas} (${quote.tandas} hora${quote.tandas === 1 ? '' : 's'})`) : ''}
 ${Number(quote.tandas) > 0 ? row('Fin estimado', quoteEndStamp(quote)) : ''}
+${Number(quote.rate_per_tanda) > 0 ? row('Pago por tanda', `$${Number(quote.rate_per_tanda).toFixed(2)}`) : ''}
 ${row('Vigencia', quote.valid_until)}
 ${row('Músicos planeados', quote.musicians_planned)}
 ${Number(quote.deposit_amount) > 0 ? row('Depósito', `$${Number(quote.deposit_amount).toFixed(2)}`) : ''}
@@ -1115,7 +1137,7 @@ ${acceptBlock}
     if (!existing || !canAccess(req.user, existing)) return notFound(res)
     const musicians = req.body?.musicians !== undefined
       ? req.body.musicians
-      : all('SELECT musician_id, name, phone, payment_amount, paid FROM event_musicians WHERE event_id = ?', existing.id)
+      : all('SELECT musician_id, name, phone, payment_per_tanda, payment_amount, paid FROM event_musicians WHERE event_id = ?', existing.id)
     const merged = {
       ...existing,
       ...req.body,

@@ -69,6 +69,7 @@ export function downloadQuotePng(quote) {
     ['Fecha del evento', quote.event_date ? `${quote.event_date} ${quote.event_time || '19:00'}` : ''],
     ['Tandas', Number(quote.tandas) > 0 ? `${quote.tandas} (${quote.tandas} h)` : ''],
     ['Fin estimado', quoteEnd(quote)],
+    ['Pago por tanda', Number(quote.rate_per_tanda) > 0 ? fmt(quote.rate_per_tanda) : ''],
     ['Ubicación', place],
     ['Depósito', Number(quote.deposit_amount) > 0 ? fmt(quote.deposit_amount) : ''],
     ['Vigencia', quote.valid_until],

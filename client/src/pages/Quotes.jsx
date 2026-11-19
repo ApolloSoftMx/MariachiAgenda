@@ -4,7 +4,7 @@ import { Loading, ErrorBox, Section, Field, Btn, Modal, Badge, confirmAction, us
 import { copyText, downloadQuotePng } from '../quote.js'
 
 const blank = {
-  title: '', client_id: '', event_date: '', event_time: '19:00', tandas: 1, location_name: '',
+  title: '', client_id: '', event_date: '', event_time: '19:00', tandas: 1, rate_per_tanda: 0, location_name: '',
   address: '', maps_url: '', description: '', musicians_planned: 0,
   amount: 0, deposit_amount: 0, valid_until: '', status: 'draft',
   deposit_account_id: '', deposit_details: '', notes: ''
@@ -19,6 +19,12 @@ function quoteEnd(quote) {
   end.setHours(end.getHours() + n)
   const p = (x) => String(x).padStart(2, '0')
   return `${end.getFullYear()}-${p(end.getMonth() + 1)}-${p(end.getDate())} ${p(end.getHours())}:${p(end.getMinutes())}`
+}
+
+function amountFromRate(quote) {
+  const rate = Number(quote?.rate_per_tanda) || 0
+  const tandas = Math.round(Number(quote?.tandas)) || 0
+  return rate > 0 && tandas > 0 ? Number((rate * tandas).toFixed(2)) : 0
 }
 
 const NEW_CLIENT = '__new__'
@@ -170,7 +176,7 @@ export default function Quotes() {
 
         {quotes.length === 0 ? <div className="empty">Aún no hay cotizaciones. Crea la primera con el botón de arriba.</div> : (
           <div className="table-wrap"><table>
-            <thead><tr><th>Cotización</th><th>Cliente</th><th>Fecha</th><th>Tandas</th><th>Total</th><th>Estatus</th><th></th></tr></thead>
+            <thead><tr><th>Cotización</th><th>Cliente</th><th>Fecha</th><th>Tandas</th><th>Pago x tanda</th><th>Total</th><th>Estatus</th><th></th></tr></thead>
             <tbody>
               {quotes.map((q) => (
                 <tr key={q.id}>
@@ -178,6 +184,7 @@ export default function Quotes() {
                   <td>{q.client_name || '—'}</td>
                   <td>{q.event_date ? dateShort(q.event_date) : '—'}</td>
                   <td>{Number(q.tandas) > 0 ? `${q.tandas} h` : '—'}</td>
+                  <td>{Number(q.rate_per_tanda) > 0 ? money(q.rate_per_tanda) : '—'}</td>
                   <td><strong>{money(q.amount)}</strong></td>
                   <td>{statusBadge(q.status)}</td>
                   <td>
@@ -241,9 +248,19 @@ export default function Quotes() {
                 <input type="time" value={editing.event_time || '19:00'}
                   onChange={(e) => setEditing({ ...editing, event_time: e.target.value })} />
               </Field>
-              <Field label="Número de tandas (horas)" hint="Cada tanda dura 1 hora. Se calcula la hora de término.">
+              <Field label="Número de tandas (horas)" hint="Cada tanda dura 1 hora. Se calculan el fin y el total.">
                 <input type="number" min="1" max="48" step="1" value={editing.tandas ?? 1}
-                  onChange={(e) => setEditing({ ...editing, tandas: e.target.value })} />
+                  onChange={(e) => setEditing((prev) => {
+                    const next = { ...prev, tandas: e.target.value }
+                    return Number(prev.rate_per_tanda) > 0 ? { ...next, amount: amountFromRate(next) } : next
+                  })} />
+              </Field>
+              <Field label="Pago por tanda" hint="Si lo capturas, el total se calcula como tarifa × tandas. Puedes ajustarlo después.">
+                <input type="number" min="0" step="0.01" value={editing.rate_per_tanda ?? 0}
+                  onChange={(e) => setEditing((prev) => {
+                    const next = { ...prev, rate_per_tanda: e.target.value }
+                    return Number(e.target.value) > 0 ? { ...next, amount: amountFromRate(next) } : next
+                  })} />
               </Field>
               <Field label="Fin estimado" hint={quoteEnd(editing) ? 'Inicio + tandas.' : 'Captura fecha, hora y tandas para verlo.'}>
                 <input value={quoteEnd(editing)} readOnly placeholder="—" />

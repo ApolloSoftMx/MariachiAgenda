@@ -56,7 +56,8 @@ export default function Events() {
               const maps = mapsFor(e)
               const shownMusicians = e.musicians_planned || e.musician_count
               return (
-                <article key={e.id} className={'event-card' + (e.status === 'cancelled' ? ' cancelled' : '')}>
+                <article key={e.id} className={'event-card' + (e.status === 'cancelled' ? ' cancelled' : '')}
+                  style={{ '--event-color': e.event_color || (e.role === 'guest' ? '#e11d48' : '#7c3aed') }}>
                   <div className="event-card-head">
                     <div>
                       <div className="row gap wrap"><h3>{e.title}</h3>{roleBadge(e.role, e.band_kind, e.band_responsable)}{statusBadge(e.status)}</div>
