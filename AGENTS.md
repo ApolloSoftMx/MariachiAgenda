@@ -2,6 +2,8 @@
 
 Mariachi agenda + clients + finances app. React PWA (`client/`) on an Express API (`server/`) with SQLite via the built-in `node:sqlite` (no native deps). UI copy and API errors are in Spanish; keep them that way.
 
+Product and visual truth live in `PRODUCT.md` and `DESIGN.md` (plus `.impeccable/design.json`) for the Impeccable skill at `.opencode/skills/impeccable/`; keep them in sync when changing the UI.
+
 ## Commands
 
 ```bash

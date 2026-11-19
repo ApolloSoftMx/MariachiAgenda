@@ -1,0 +1,290 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-19T20:18:45Z",
+  "title": "Design System: MariachiTotal",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Violeta de reflector",
+        "canonical": "#6d28d9",
+        "tonalRamp": ["#2b1058", "#411981", "#5b21a9", "#6d28d9", "#8b4ee6", "#a97cf0", "#c9aaf7", "#eee4fc"]
+      },
+      "on-primary": {
+        "role": "primary",
+        "displayName": "Texto sobre reflector",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#ffffff", "#f4f0ff", "#ded3f7", "#bcaae4", "#9480c6", "#6e5aa3", "#4a3b78", "#2b2150"]
+      },
+      "primary-tint": {
+        "role": "primary",
+        "displayName": "Tinte violeta",
+        "canonical": "#f4edff",
+        "tonalRamp": ["#2a2440", "#453a64", "#63538a", "#8574ad", "#ab9dcb", "#cbbfdf", "#e4dcf0", "#f4edff"]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Lienzo apagado",
+        "canonical": "#f7f6fb",
+        "tonalRamp": ["#1a1920", "#34313c", "#504c5c", "#746f81", "#a19cad", "#cbc7d6", "#e5e3ee", "#f7f6fb"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Superficie de tarjeta",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#1c1c1c", "#383838", "#575757", "#777777", "#9b9b9b", "#bcbcbc", "#dedede", "#ffffff"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta de trabajo",
+        "canonical": "#1f2430",
+        "tonalRamp": ["#0a0c11", "#141821", "#1f2430", "#303749", "#4b5060", "#727889", "#a9aeba", "#dfe2e8"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Gris de apoyo",
+        "canonical": "#6b7280",
+        "tonalRamp": ["#181a1e", "#2c2f35", "#464a53", "#5d6470", "#6b7280", "#8d94a0", "#aeb4bd", "#d6d9de"]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Línea suave",
+        "canonical": "#e8e5f0",
+        "tonalRamp": ["#26242e", "#413e4c", "#605c6d", "#827e90", "#a7a3b5", "#c8c4d4", "#dedbe8", "#e8e5f0"]
+      },
+      "sidebar": {
+        "role": "neutral",
+        "displayName": "Bastidor de escenario",
+        "canonical": "#1d1533",
+        "tonalRamp": ["#0a0712", "#120c20", "#1d1533", "#2b2150", "#3b2f68", "#584888", "#7e6cad", "#b5a7d0"]
+      },
+      "sidebar-ink": {
+        "role": "neutral",
+        "displayName": "Texto del bastidor",
+        "canonical": "#f4f0ff",
+        "tonalRamp": ["#2b2740", "#46405e", "#665d80", "#8a80a2", "#b0a7c2", "#d0c9df", "#e8e2f2", "#f4f0ff"]
+      },
+      "guest": {
+        "role": "secondary",
+        "displayName": "Rojo de invitado",
+        "canonical": "#e11d48",
+        "tonalRamp": ["#48091a", "#750f28", "#a81538", "#e11d48", "#ea5172", "#f2849d", "#f7b8c8", "#fde4ea"]
+      },
+      "own-event": {
+        "role": "secondary",
+        "displayName": "Violeta de grupo propio",
+        "canonical": "#7c3aed",
+        "tonalRamp": ["#2d105f", "#4a1a8c", "#6429b9", "#7c3aed", "#9a63f2", "#b891f6", "#d6bffa", "#efe7fd"]
+      },
+      "danger": {
+        "role": "semantic",
+        "displayName": "Rojo de error",
+        "canonical": "#b52038",
+        "tonalRamp": ["#3f0a17", "#691027", "#93172f", "#b52038", "#cb4a60", "#dc7b8c", "#ecafba", "#f9dde2"]
+      },
+      "success": {
+        "role": "semantic",
+        "displayName": "Verde de cobro",
+        "canonical": "#12663c",
+        "tonalRamp": ["#062415", "#0c3a22", "#125230", "#12663c", "#2c8b58", "#5bb181", "#92d3a9", "#d5f0df"]
+      },
+      "warning": {
+        "role": "semantic",
+        "displayName": "Ámbar de aviso",
+        "canonical": "#7a5200",
+        "tonalRamp": ["#2a1d07", "#46310d", "#634514", "#7a5200", "#a5741d", "#c99a45", "#e3c184", "#f7e5c4"]
+      },
+      "dark-on-primary": {
+        "role": "primary",
+        "displayName": "Texto sobre reflector nocturno",
+        "canonical": "#14121d",
+        "tonalRamp": ["#14121d", "#231f2f", "#332e43", "#463f59", "#5d5473", "#7b7191", "#a49bb5", "#ded9e8"]
+      },
+      "blue-bg": {
+        "role": "semantic",
+        "displayName": "Fondo azul de información",
+        "canonical": "#e6f0ff",
+        "tonalRamp": ["#0d1a2e", "#172947", "#243e65", "#3a5c8a", "#6685ad", "#91aac9", "#c0d1e6", "#e6f0ff"]
+      },
+      "blue-ink": {
+        "role": "semantic",
+        "displayName": "Azul de información",
+        "canonical": "#1d4ed8",
+        "tonalRamp": ["#101f47", "#1a306e", "#244296", "#1d4ed8", "#4b75e6", "#7f9df0", "#afbef7", "#e0e7fd"]
+      },
+      "blue-line": {
+        "role": "semantic",
+        "displayName": "Borde azul",
+        "canonical": "#d9e7ff",
+        "tonalRamp": ["#1a2740", "#2b3b5a", "#425476", "#607498", "#8b9cb9", "#b3c1d6", "#d0dae9", "#d9e7ff"]
+      },
+      "dark-canvas": {
+        "role": "neutral",
+        "displayName": "Lienzo nocturno",
+        "canonical": "#14121d",
+        "tonalRamp": ["#050408", "#0b0910", "#14121d", "#1e1b2b", "#2b2739", "#3b354e", "#56506b", "#7d7692"]
+      },
+      "dark-surface": {
+        "role": "neutral",
+        "displayName": "Superficie nocturna",
+        "canonical": "#1e1b2b",
+        "tonalRamp": ["#0a0810", "#14121d", "#1e1b2b", "#2b2739", "#3a354b", "#514a67", "#736b8c", "#a49db9"]
+      },
+      "dark-ink": {
+        "role": "neutral",
+        "displayName": "Tinta nocturna",
+        "canonical": "#f2eff8",
+        "tonalRamp": ["#2b2736", "#464159", "#665f7a", "#8b839c", "#b0a9bd", "#d0cad9", "#e8e4ef", "#f2eff8"]
+      },
+      "dark-primary": {
+        "role": "primary",
+        "displayName": "Reflector nocturno",
+        "canonical": "#a98cf0",
+        "tonalRamp": ["#302454", "#4b3478", "#69499d", "#8f6bdd", "#a98cf0", "#c3aaf5", "#ddcffa", "#f1ecfe"]
+      }
+    },
+    "typographyMeta": {
+      "body": {
+        "displayName": "Cuerpo",
+        "purpose": "Texto de trabajo, tablas y descripciones a 15px con interlineado 1.45."
+      },
+      "title": {
+        "displayName": "Título",
+        "purpose": "Encabezados de sección (h2) y tarjetas; peso 700."
+      },
+      "label": {
+        "displayName": "Etiqueta",
+        "purpose": "Cabeceras de tabla y rótulos cortos en mayúsculas con tracking 0.03em."
+      }
+    },
+    "shadows": [
+      {
+        "name": "ambient-card",
+        "value": "0 12px 32px rgba(55,30,100,.14)",
+        "purpose": "Tarjetas, secciones y formularios en tema claro."
+      },
+      {
+        "name": "ambient-card-dark",
+        "value": "0 12px 32px rgba(0,0,0,.5)",
+        "purpose": "La misma tarjeta en tema oscuro."
+      },
+      {
+        "name": "control-lift",
+        "value": "0 1px 4px rgba(0,0,0,.08)",
+        "purpose": "Segmentos activos y controles pequeños."
+      },
+      {
+        "name": "dialog",
+        "value": "0 20px 60px rgba(0,0,0,.2)",
+        "purpose": "Modales y tarjeta de acceso."
+      }
+    ],
+    "breakpoints": [
+      { "name": "tablet", "value": "900px" },
+      { "name": "mobile", "value": "720px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción principal de la pantalla, como agendar un evento o entrar.",
+      "html": "<button class=\"ds-btn-primary\">Agendar evento</button>",
+      "css": ".ds-btn-primary { background: var(--primary, #6d28d9); color: var(--on-primary, #fff); border: 0; border-radius: 10px; padding: 10px 16px; font: 600 15px Inter, system-ui, sans-serif; cursor: pointer; } .ds-btn-primary:hover { filter: brightness(.97); } .ds-btn-primary:focus-visible { outline: 2px solid var(--primary, #6d28d9); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Acción secundaria sobre tinte violeta, como abrir el manual.",
+      "html": "<button class=\"ds-btn-ghost\">Manual</button>",
+      "css": ".ds-btn-ghost { background: var(--primary-tint, #f4edff); color: var(--primary, #6d28d9); border: 0; border-radius: 10px; padding: 10px 16px; font: 600 15px Inter, system-ui, sans-serif; cursor: pointer; } .ds-btn-ghost:hover { filter: brightness(.97); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--primary, #6d28d9); outline-offset: 2px; }"
+    },
+    {
+      "name": "Section Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Contenedor estándar de una sección de la agenda.",
+      "html": "<section class=\"ds-card\"><h3>Próximos eventos</h3><p>3 eventos esta semana</p></section>",
+      "css": ".ds-card { background: var(--card, #fff); color: var(--ink, #1f2430); border: 1px solid var(--line, #e8e5f0); border-radius: 16px; padding: 20px; box-shadow: 0 12px 32px rgba(55,30,100,.14); font: 400 15px/1.45 Inter, system-ui, sans-serif; } .ds-card h3 { margin: 0 0 8px; font-size: 1rem; font-weight: 700; } .ds-card p { margin: 0; color: var(--muted, #6b7280); }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de formulario con etiqueta y foco violeta.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-label\">Correo</span><input class=\"ds-input\" type=\"email\" placeholder=\"nombre@correo.com\" /></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-label { font: 600 .8rem Inter, system-ui, sans-serif; color: var(--ink-soft, #4b5060); } .ds-input { width: 100%; background: var(--card, #fff); color: var(--ink, #1f2430); border: 1px solid var(--line, #e8e5f0); border-radius: 10px; padding: 10px 11px; font: 400 15px Inter, system-ui, sans-serif; outline: none; } .ds-input::placeholder { color: var(--muted, #6b7280); opacity: 1; } .ds-input:focus { border-color: var(--primary, #6d28d9); box-shadow: 0 0 0 3px var(--primary-tint, #f4edff); }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge",
+      "description": "Pastilla pequeña que comunica estado sin cambiar de forma.",
+      "html": "<span class=\"ds-badge\">Pagado</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; background: var(--success-bg, #e7f7ee); color: var(--success-ink, #12663c); border-radius: 999px; padding: 3px 9px; font: 600 .72rem Inter, system-ui, sans-serif; white-space: nowrap; }"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "description": "Item de navegación lateral, con estado activo violeta.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-active\" href=\"#\"><span class=\"ds-nav-icon\">🏠</span>Inicio</a><a class=\"ds-nav-item\" href=\"#\"><span class=\"ds-nav-icon\">📅</span>Calendario</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 4px; background: var(--sidebar-bg, #1d1533); padding: 14px; } .ds-nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; color: var(--sidebar-muted, #cfc6e6); font: 500 15px Inter, system-ui, sans-serif; text-decoration: none; } .ds-nav-item:hover { background: var(--sidebar-hover, #2b2150); color: #fff; } .ds-nav-item.ds-active { background: var(--primary, #6d28d9); color: var(--on-primary, #fff); } .ds-nav-icon { width: 20px; text-align: center; }"
+    },
+    {
+      "name": "Event Card",
+      "kind": "card",
+      "description": "Tarjeta de evento con borde completo en el color semántico de la agrupación.",
+      "html": "<article class=\"ds-event-card\" style=\"--event-color: #7c3aed\"><div class=\"ds-event-date\"><strong>14</strong><small>NOV</small></div><div><strong>Boda de Laura</strong><p>19:00 · 3 tandas</p></div></article>",
+      "css": ".ds-event-card { display: flex; align-items: center; gap: 14px; background: var(--card, #fff); border: 2px solid var(--event-color, #7c3aed); border-radius: 14px; padding: 16px; font: 400 15px/1.45 Inter, system-ui, sans-serif; } .ds-event-card p { margin: 0; color: var(--muted, #6b7280); font-size: .84rem; } .ds-event-date { background: var(--primary-tint, #f4edff); color: var(--primary, #6d28d9); border-radius: 10px; padding: 7px 4px; min-width: 52px; text-align: center; } .ds-event-date strong { display: block; font-size: 1rem; } .ds-event-date small { font-size: .7rem; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "El Escenario Iluminado",
+    "overview": "La agenda es un escenario ordenado: un fondo apagado, un reflector violeta sobre la acción y cada evento con su propio lugar y color. La app se usa sobre todo en el celular, entre presentaciones y con prisa, así que la jerarquía es inmediata: qué sigue, cuándo, con quién y cuánto se cobra. No hay espacio para la decoración que no ayude a decidir.\n\nEl sistema es lifted y expresivo dentro de una herramienta de trabajo: las tarjetas se separan del fondo con sombras suaves y desplazadas, y los estados (activo, pagado, cancelado, invitado) se comunican con color semántico antes que con texto. Los controles son familiares y precisos — botones, campos y pestañas reconocibles — para que la interfaz desaparezca en la tarea. El violeta aparece donde hay que actuar; el rojo de invitado y el color de cada agrupación identifican los eventos sin competir con él.\n\nClaro y oscuro son el mismo escenario con distinta iluminación: no se rediseña la jerarquía, se invierten las superficies y se ajusta el acento para conservar contraste. La elección del usuario gana sobre la del dispositivo, y «Sistema» sigue la preferencia del dispositivo en vivo.",
+    "keyCharacteristics": [
+      "Reflector violeta sobre fondo apagado: acento escaso y decisivo.",
+      "Tarjetas elevadas con sombra desplazada y desenfoque suave, no halos.",
+      "Un solo tipo de letra (Inter) y una escala corta y legible en pantallas pequeñas.",
+      "Color semántico para eventos propios, invitados, estados y finanzas.",
+      "Dos temas, una sola jerarquía; superficies claras y oscuras con contraste verificado."
+    ],
+    "rules": [
+      {
+        "name": "The One Spotlight Rule",
+        "body": "El violeta de reflector se reserva para la acción y el estado activo; si todo es violeta, nada guía. El color de evento es identidad, no adorno.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Voice Rule",
+        "body": "No se introduce una segunda familia para enfatizar: el peso y el tamaño hacen el trabajo. Las cifras de dinero conservan su alineación y no se transforman en displays.",
+        "section": "typography"
+      },
+      {
+        "name": "The Breathing Rule",
+        "body": "Grupos compactos (8–12px), secciones generosas (20–24px). El espacio arriba de un encabezado supera al de abajo para que el texto pertenezca a quien lo encabeza.",
+        "section": "layout"
+      },
+      {
+        "name": "The Lifted Stage Rule",
+        "body": "Toda sombra lleva offset y desenfoque. Una tarjeta en reposo ya está elevada; el hover la acerca al usuario, no la inventa.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do mantener la interfaz y los errores en español; los controles nombran la acción («Agendar evento», «+ Cliente»).",
+      "Do usar el borde completo de 2px con --event-color para identificar eventos propios e invitados.",
+      "Do verificar contraste 4.5:1 en texto normal y 3:1 en texto grande, en ambos temas y sobre superficies coloreadas.",
+      "Do templar selección, caret, scrollbar y foco desde la paleta: también son parte del sistema.",
+      "Do que el cambio de tema sea inmediato y persista en mariachitotal-theme, con «Sistema» reaccionando en vivo."
+    ],
+    "donts": [
+      "Don't usar barras de color de un solo lado en tarjetas ni pastillas: ya no pertenecen al sistema.",
+      "Don't introducir una segunda familia tipográfica ni fuentes display para los números.",
+      "Don't poner texto gris neutro sobre superficies coloreadas: se matiza desde el tono de la superficie.",
+      "Don't usar halos de color sin desplazamiento como sombra, ni sombras duras de offset cero.",
+      "Don't añadir acentos nuevos para decorar: el violeta guía y el resto de colores significan estado."
+    ]
+  }
+}

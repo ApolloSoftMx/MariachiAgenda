@@ -5,8 +5,9 @@ data/
 *.log
 .DS_Store
 
-# Estado local de Impeccable (decisiones por sesión caché); se commitea solo config.json
+# Estado local de Impeccable (decisiones por sesión caché); se commitea solo config.json y design.json
 .impeccable/questions/
+.impeccable/shots/
 .impeccable/mocks/
 .impeccable/review/
 .impeccable/critique/
