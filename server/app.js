@@ -52,7 +52,7 @@ const zEvent = z.object({
   advance_amount: money.optional().default(0),
   advance_account_id: nullableInt.optional().default(null),
   notes: z.string().optional().default(''),
-  musicians: z.array(zMusician).optional().default([])
+  musicians: z.array(zMusician).max(200, 'Máximo 200 músicos por evento').optional().default([])
 })
 
 const QUOTE_SELECT = `
