@@ -10,6 +10,9 @@ const blank = {
   deposit_account_id: '', deposit_details: '', notes: ''
 }
 
+const NEW_CLIENT = '__new__'
+const blankNewClient = { name: '', phone: '', notes: '' }
+
 const STATUS = {
   draft: ['Borrador', 'gray'], sent: ['Enviada', 'blue'],
   accepted: ['Aceptada', 'green'], rejected: ['Rechazada', 'red']
@@ -116,9 +119,22 @@ export default function Quotes() {
       delete body.client_phone
       delete body.account_name
       delete body.account_details
+      delete body._newClient
+      let createdClient = false
+      if (body.client_id === NEW_CLIENT) {
+        const client = await api.post('/clients', {
+          name: String(editing._newClient?.name || '').trim(),
+          phone: String(editing._newClient?.phone || '').trim(),
+          notes: String(editing._newClient?.notes || '').trim()
+        })
+        body.client_id = client.id
+        createdClient = true
+        clientsLoad.reload()
+      }
       if (editing.id) await api.patch(`/quotes/${editing.id}`, body)
       else await api.post('/quotes', body)
-      setEditing(null); reload(); notify('Cotización guardada')
+      setEditing(null); reload()
+      notify(createdClient ? 'Cliente dado de alta y cotización guardada' : 'Cotización guardada')
     } catch (err) { setFormError(err.message) } finally { setSaving(false) }
   }
 
@@ -133,7 +149,7 @@ export default function Quotes() {
   return (
     <div className="stack-lg">
       <Section title="Cotizaciones" subtitle="Registra propuestas, comparte el PDF o una imagen y envía los datos de depósito"
-        actions={<Btn onClick={() => { setEditing({ ...blank }); setFormError('') }}>+ Nueva cotización</Btn>}>
+        actions={<Btn onClick={() => { setEditing({ ...blank, _newClient: { ...blankNewClient } }); setFormError('') }}>+ Nueva cotización</Btn>}>
         <div className="filters">
           <Field label="Buscar">
             <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Título o cliente" />
@@ -176,12 +192,36 @@ export default function Quotes() {
               <Field label="Título" className="span-2">
                 <input value={editing.title || ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} required />
               </Field>
-              <Field label="Cliente">
-                <select value={editing.client_id ?? ''} onChange={(e) => setEditing({ ...editing, client_id: e.target.value })}>
+              <Field label="Cliente" hint="Si aún no está registrado, elige «Crear nuevo cliente».">
+                <select value={editing.client_id ?? ''} onChange={(e) => {
+                  const value = e.target.value
+                  setEditing((prev) => ({
+                    ...prev,
+                    client_id: value,
+                    _newClient: value === NEW_CLIENT && !prev._newClient ? { ...blankNewClient } : prev._newClient
+                  }))
+                }}>
                   <option value="">Sin cliente</option>
                   {(clientsLoad.data || []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  <option value={NEW_CLIENT}>➕ Crear nuevo cliente…</option>
                 </select>
               </Field>
+              {editing.client_id === NEW_CLIENT && (
+                <>
+                  <Field label="Nombre del nuevo cliente" className="span-2" hint="Se dará de alta en Clientes al guardar la cotización.">
+                    <input value={editing._newClient?.name || ''} required placeholder="Nombre completo"
+                      onChange={(e) => setEditing({ ...editing, _newClient: { ...editing._newClient, name: e.target.value } })} />
+                  </Field>
+                  <Field label="Teléfono del nuevo cliente" hint="Con él se generan los enlaces de WhatsApp y llamada.">
+                    <input value={editing._newClient?.phone || ''} placeholder="55 1234 5678"
+                      onChange={(e) => setEditing({ ...editing, _newClient: { ...editing._newClient, phone: e.target.value } })} />
+                  </Field>
+                  <Field label="Notas del cliente" className="span-2">
+                    <textarea rows={2} value={editing._newClient?.notes || ''}
+                      onChange={(e) => setEditing({ ...editing, _newClient: { ...editing._newClient, notes: e.target.value } })} />
+                  </Field>
+                </>
+              )}
               <Field label="Fecha del evento">
                 <input type="date" value={editing.event_date || ''} onChange={(e) => setEditing({ ...editing, event_date: e.target.value })} />
               </Field>
