@@ -19,6 +19,20 @@ const TOC = [
 const Pasos = ({ children }) => <ol className="manual-steps">{children}</ol>
 const Paso = ({ children }) => <li className="manual-step"><span>{children}</span></li>
 
+const ManualShot = ({ src, alt, caption }) => (
+  <figure className="manual-shot">
+    <img src={'/manual/' + src} alt={alt} loading="lazy" />
+    {caption && <figcaption>{caption}</figcaption>}
+  </figure>
+)
+
+const MessageExample = ({ label, children }) => (
+  <div className="manual-example">
+    <div className="manual-example-head">{label}</div>
+    <pre>{children}</pre>
+  </div>
+)
+
 export default function Manual({ standalone = false }) {
   const content = (
     <div className="stack-lg manual">
@@ -95,6 +109,28 @@ export default function Manual({ standalone = false }) {
         <div className="manual-note">
           Los recordatorios se envían a los chats vinculados. Si no llegan, revisa que el bot esté activo y que tu chat aparezca como vinculado.
         </div>
+
+        <h3>Ejemplo: mensajes que envía el bot</h3>
+        <p className="muted small">
+          El bot escribe en tu chat de Telegram, no dentro de la app. Así se ve un recordatorio de evento y una solicitud de acceso para el super administrador.
+        </p>
+        <MessageExample label={'Telegram · Recordatorio'}>
+          {`Recordatorio: mañana
+
+🎺 Boda de Ana y Luis
+🗓️ vie 12 dic, 07:00 p.m. · Mariachi Sol (tu grupo)
+👤 Ana López
+📍 Salón El Rancho — Av. Juárez 123, CDMX`}
+        </MessageExample>
+        <MessageExample label={'Telegram · Solicitud de acceso (solo super administrador)'}>
+          {`👤 Marta Gómez
+✉️ marta@correo.com
+
+¿Le damos acceso?
+[✅ Aprobar]  [⛔ Rechazar]`}
+        </MessageExample>
+        <ManualShot src="mensajes-telegram.png" alt="Chat de Telegram con un recordatorio de evento y una solicitud de acceso con botones Aprobar y Rechazar"
+          caption="Los botones Aprobar y Rechazar solo aparecen en el chat del super administrador." />
       </Section>
 
       <Section title="5. Eventos y calendario" id="agenda">
@@ -109,6 +145,66 @@ export default function Manual({ standalone = false }) {
           <Paso><strong>Enviar a músicos confirmados:</strong> en esta sección aparecen solo quienes confirmaron. Junto a cada uno tienes <strong>WhatsApp</strong> y <strong>Copiar</strong>: generan un mensaje con emojis con <strong>todos los datos del evento, el nombre del músico y el pago por tanda que se capturó en el evento</strong> (solo el de ese músico). Es distinto del mensaje de invitación: aquel lleva el enlace para confirmar, no dice que ya confirmó y no muestra importes. La página pública tampoco muestra importes.</Paso>
           <Paso>El rol del evento puede ser <Badge tone="purple">Mi grupo (encargado)</Badge> o <Badge tone="blue">Invitado / otro encargado</Badge>. Un mismo usuario puede ser encargado en unos eventos e invitado en otros.</Paso>
         </Pasos>
+
+        <h3>Ejemplo 1: la invitación que recibe el músico</h3>
+        <p className="muted small">
+          Generas el enlace y abres WhatsApp desde <strong>📤 Compartir → Abrir WhatsApp</strong> para elegir destinatarios: puedes mandar el mismo mensaje a varios músicos. El pago por tanda que capturaste se usa al registrar la confirmación, pero <strong>no aparece en este mensaje</strong>. Aquí tampoco se dice quién confirmó ni cuánto se les pagará.
+        </p>
+        <ManualShot src="invitacion-publica.png" alt="Página pública de invitación con los datos del evento y los botones Confirmar asistencia y No puedo asistir"
+          caption="Esto ve el músico al abrir el enlace: datos del evento y dos botones. No aparece ningún importe." />
+        <MessageExample label={'WhatsApp · Mensaje de invitación'}>
+          {`Hola 👋, te invito a este evento:
+
+🎺 *Boda de Ana y Luis* 🎺
+
+📅 Fecha: sábado, 12 de diciembre de 2026, 07:00 p.m.
+⏱️ Tandas: 5 (5 horas).
+🏁 Fin estimado: domingo, 13 de diciembre de 2026, 12:00 a.m.
+📍 Lugar: Salón El Rancho — Av. Juárez 123, CDMX.
+🗺️ Ubicación: https://www.google.com/maps/search/?api=1&query=Av.%20Juárez%20123%2C%20CDMX
+🎼 Agrupación: Mariachi Sol.
+📝 Notas: Traje negro y llegar a las 18:30
+
+👉 Confirma si puedes asistir aquí: https://mariachitotal.apollosoftmx.com/e/TU_TOKEN
+
+Enviado desde MariachiTotal`}
+        </MessageExample>
+        <ManualShot src="mensaje-invitacion-whatsapp.png" alt="Chat de WhatsApp con el mensaje de invitación y el enlace para confirmar"
+          caption="El texto se abre en WhatsApp sin número de destino: tú eliges a quién enviarlo." />
+
+        <h3>Ejemplo 2: la confirmación del músico</h3>
+        <p className="muted small">
+          El músico escribe su <strong>nombre y teléfono</strong> y elige <strong>✅ Confirmar asistencia</strong> o <strong>No puedo asistir</strong>. Si su teléfono ya está en el catálogo se reutiliza ese músico; si confirma, se agrega al evento. Tú ves el resultado en <strong>Respuestas</strong>, dentro del mismo botón 📤 Compartir.
+        </p>
+        <ManualShot src="confirmacion-musico.png" alt="Página pública después de confirmar, con el aviso Asistencia confirmada y el nombre del músico"
+          caption="Después de confirmar, la misma página muestra este aviso. El botón Cambiar respuesta permite corregir." />
+
+        <h3>Ejemplo 3: el mensaje para un músico ya confirmado</h3>
+        <p className="muted small">
+          En <strong>Enviar a músicos confirmados</strong> aparece cada músico que confirmó con su botón <strong>WhatsApp</strong> y <strong>Copiar</strong>. Este mensaje sí incluye todos los datos del evento, su nombre y <strong>su pago</strong>, sin enlace de confirmación.
+        </p>
+        <MessageExample label={'WhatsApp · Mensaje individual para Carlos'}>
+          {`Hola Carlos Ramírez 👋,
+
+🎺 *Boda de Ana y Luis* 🎺
+
+📅 Fecha: sábado, 12 de diciembre de 2026, 07:00 p.m.
+⏱️ Tandas: 5 (5 horas).
+🏁 Fin estimado: domingo, 13 de diciembre de 2026, 12:00 a.m.
+📍 Lugar: Salón El Rancho — Av. Juárez 123, CDMX.
+🗺️ Ubicación: https://www.google.com/maps/search/?api=1&query=Av.%20Juárez%20123%2C%20CDMX
+🎼 Agrupación: Mariachi Sol.
+📝 Notas: Traje negro y llegar a las 18:30
+
+💰 Tu pago: *$1,250.00* ($250.00 por tanda)
+
+Enviado desde MariachiTotal`}
+        </MessageExample>
+        <ManualShot src="mensaje-musico-whatsapp.png" alt="Chat de WhatsApp con el mensaje personalizado para un músico confirmado y su pago"
+          caption="Cada mensaje muestra únicamente el pago de ese músico, nunca el de los demás." />
+        <p className="muted small">
+          <strong>Ojo con los dos precios:</strong> el <em>pago por tanda de la invitación</em> se usa para calcular el pago cuando el músico confirma y no aparece en el enlace. El pago que muestra este mensaje es el que capturaste <strong>en el evento</strong> para ese músico: en el ejemplo son $250 por tanda, aunque la invitación se haya creado con $350.
+        </p>
       </Section>
 
       <Section title="6. Clientes y cotizaciones" id="clientes">
