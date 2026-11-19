@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { api, useLoad } from './api.js'
+import { api, useLoad, money } from './api.js'
 import { Modal, Field, Btn, Loading, ErrorBox, useNotify } from './ui.jsx'
 import { copyText } from './quote.js'
-import { buildEventMessage, buildInviteMessage, waLink, waNumber } from './eventShare.js'
+import { buildEventMessage, buildInviteMessage, buildConfirmationMessage, waLink, waNumber } from './eventShare.js'
 
 // Genera una invitación pública: el encargado comparte el enlace por WhatsApp y
 // cada músico confirma su asistencia identificándose con nombre y teléfono.
@@ -143,19 +143,44 @@ export default function EventShareButton({ event, label = 'Compartir', small = f
               <p className="muted small">
                 {confirmed.length} confirmaron asistencia · {declined.length} no pueden asistir
               </p>
+              <p className="muted small">
+                En quienes confirmaron puedes abrir WhatsApp o copiar un mensaje individual con emojis y su pago.
+              </p>
               {confirmed.length + declined.length > 0 && (
                 <div className="stack">
-                  {[...latest.values()].map((r) => (
-                    <div key={r.phone} className="share-musician">
-                      <div className="who">
-                        <strong>{r.name}</strong>
-                        <div className="muted small">📱 {r.phone}</div>
+                  {[...latest.values()].map((r) => {
+                    const isConfirmed = r.status === 'confirmed'
+                    const confirmationText = isConfirmed ? buildConfirmationMessage(detail, r) : ''
+                    const pago = Number(r.payment_amount)
+                      || (Number(r.payment_per_tanda || r.invite_rate_per_tanda) || 0) * (Number(detail.tandas) || 0)
+                    return (
+                      <div key={r.phone} className="share-musician">
+                        <div className="who">
+                          <strong>{r.name}</strong>
+                          <div className="muted small">
+                            📱 {r.phone}{pago > 0 ? ` · Pago ${money(pago)}` : ''}
+                          </div>
+                        </div>
+                        <div className="row gap wrap">
+                          <span className={'badge ' + (isConfirmed ? 'badge-green' : 'badge-red')}>
+                            {isConfirmed ? 'Asiste' : 'No asiste'}
+                          </span>
+                          {isConfirmed && <>
+                            {waNumber(r.phone) && (
+                              <a className="btn btn-ghost btn-sm" href={waLink(r.phone, confirmationText)}
+                                target="_blank" rel="noreferrer">
+                                📱 WhatsApp
+                              </a>
+                            )}
+                            <button type="button" className="btn btn-ghost btn-sm"
+                              onClick={() => copy(confirmationText, `Mensaje de ${r.name}`)}>
+                              Copiar
+                            </button>
+                          </>}
+                        </div>
                       </div>
-                      <span className={'badge ' + (r.status === 'confirmed' ? 'badge-green' : 'badge-red')}>
-                        {r.status === 'confirmed' ? 'Asiste' : 'No asiste'}
-                      </span>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </>}

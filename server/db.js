@@ -134,6 +134,7 @@ CREATE TABLE IF NOT EXISTS event_invite_responses (
   phone TEXT NOT NULL,
   status TEXT NOT NULL CHECK(status IN ('confirmed', 'declined')),
   event_musician_id INTEGER REFERENCES event_musicians(id) ON DELETE SET NULL,
+  owns_event_musician INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   UNIQUE(invite_id, phone)
@@ -227,6 +228,11 @@ if (!eventColumns.includes('rate_per_tanda')) {
 const eventMusicianColumns = db.prepare('PRAGMA table_info(event_musicians)').all().map((c) => c.name)
 if (!eventMusicianColumns.includes('payment_per_tanda')) {
   db.exec('ALTER TABLE event_musicians ADD COLUMN payment_per_tanda REAL NOT NULL DEFAULT 0')
+}
+
+const inviteResponseColumns = db.prepare('PRAGMA table_info(event_invite_responses)').all().map((c) => c.name)
+if (!inviteResponseColumns.includes('owns_event_musician')) {
+  db.exec('ALTER TABLE event_invite_responses ADD COLUMN owns_event_musician INTEGER NOT NULL DEFAULT 0')
 }
 
 const userColumns = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name)

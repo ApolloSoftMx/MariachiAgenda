@@ -1213,8 +1213,10 @@ ${acceptBlock}
     const existing = one('SELECT * FROM events WHERE id = ?', idParam(req))
     if (!existing || !canAccess(req.user, existing)) return notFound(res)
     const invites = all('SELECT * FROM event_invites WHERE event_id = ? ORDER BY created_at DESC, id DESC', existing.id)
-    const responses = all(`SELECT ir.*, ei.token AS invite_token
+    const responses = all(`SELECT ir.*, ei.token AS invite_token, ei.rate_per_tanda AS invite_rate_per_tanda,
+        em.payment_per_tanda, em.payment_amount, em.paid
       FROM event_invite_responses ir JOIN event_invites ei ON ei.id = ir.invite_id
+      LEFT JOIN event_musicians em ON em.id = ir.event_musician_id
       WHERE ei.event_id = ? ORDER BY ir.updated_at DESC, ir.id DESC`, existing.id)
     res.json(invites.map((invite) => ({
       ...invite,
@@ -1347,42 +1349,51 @@ ${invite.notes ? `<div class="block"><strong>Notas</strong><br>${escapeHtml(invi
     db.exec('BEGIN')
     try {
       const previous = one('SELECT * FROM event_invite_responses WHERE invite_id = ? AND phone = ?', invite.id, phone)
-      let trackedId = previous?.event_musician_id || null
+      let linkedId = previous?.event_musician_id || null
+      let ownsRow = Boolean(previous?.owns_event_musician)
       if (status === 'confirmed') {
-        if (trackedId && !one('SELECT id FROM event_musicians WHERE id = ? AND event_id = ?', trackedId, invite.event_id)) {
-          trackedId = null
+        if (linkedId && !one('SELECT id FROM event_musicians WHERE id = ? AND event_id = ?', linkedId, invite.event_id)) {
+          linkedId = null
+          ownsRow = false
         }
-        if (!trackedId) {
+        if (!linkedId) {
           const catalog = findOrCreateMusician({
             name, phone: digits, defaultPayment: payment || rate, createdBy: invite.created_by
           })
           const existing = all('SELECT id, musician_id, phone FROM event_musicians WHERE event_id = ?', invite.event_id)
             .find((m) => Number(m.musician_id) === Number(catalog.id) || normalizePhone(m.phone) === phone)
           if (existing) {
-            trackedId = null
+            linkedId = existing.id
+            ownsRow = false
             run('UPDATE event_musicians SET name = ?, phone = ? WHERE id = ?', name, phone, existing.id)
           } else {
             const info = run(`INSERT INTO event_musicians
               (event_id, musician_id, name, phone, payment_per_tanda, payment_amount, paid)
               VALUES (?, ?, ?, ?, ?, ?, 0)`,
             invite.event_id, catalog.id, name, phone, rate, payment)
-            trackedId = Number(info.lastInsertRowid)
+            linkedId = Number(info.lastInsertRowid)
+            ownsRow = true
           }
         } else {
-          run('UPDATE event_musicians SET name = ?, phone = ? WHERE id = ?', name, phone, trackedId)
+          run('UPDATE event_musicians SET name = ?, phone = ? WHERE id = ?', name, phone, linkedId)
         }
-      } else if (trackedId) {
-        run('DELETE FROM event_musicians WHERE id = ?', trackedId)
-        trackedId = null
+      } else {
+        if (ownsRow && linkedId && one('SELECT id FROM event_musicians WHERE id = ?', linkedId)) {
+          run('DELETE FROM event_musicians WHERE id = ?', linkedId)
+        }
+        linkedId = null
+        ownsRow = false
       }
       if (previous) {
         run(`UPDATE event_invite_responses
-             SET name = ?, status = ?, event_musician_id = ?, updated_at = datetime('now') WHERE id = ?`,
-        name, status, trackedId, previous.id)
+             SET name = ?, status = ?, event_musician_id = ?, owns_event_musician = ?,
+                 updated_at = datetime('now') WHERE id = ?`,
+        name, status, linkedId, ownsRow ? 1 : 0, previous.id)
       } else {
         run(`INSERT INTO event_invite_responses
-             (invite_id, name, phone, status, event_musician_id) VALUES (?, ?, ?, ?, ?)`,
-        invite.id, name, phone, status, trackedId)
+             (invite_id, name, phone, status, event_musician_id, owns_event_musician)
+             VALUES (?, ?, ?, ?, ?, ?)`,
+        invite.id, name, phone, status, linkedId, ownsRow ? 1 : 0)
       }
       db.exec('COMMIT')
       res.json({ ok: true, name, phone, status })

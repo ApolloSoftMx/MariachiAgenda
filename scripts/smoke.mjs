@@ -179,7 +179,8 @@ check('se puede desactivar el alta automática', noCatalogDetail.musicians[0].mu
   && !(await call('GET', '/musicians')).some((m) => m.name === 'Solo este evento'))
 
 // La invitación pública no incluye nombres de músicos ni importes en el mensaje.
-const { buildEventMessage, buildInviteMessage, waLink, waNumber } = await import('../client/src/eventShare.js')
+const { buildEventMessage, buildInviteMessage, buildConfirmationMessage, waLink, waNumber } =
+  await import('../client/src/eventShare.js')
 const shareEvent = {
   title: 'Boda Ana', starts_at: '2026-12-12T19:00', ends_at: '2026-12-13T01:00', tandas: 6,
   location_name: 'Salón El Rancho', address: 'Av. Juárez 123', band_name: 'Mariachi Sol',
@@ -188,13 +189,22 @@ const shareEvent = {
 }
 const generalMessage = buildEventMessage(shareEvent)
 const inviteText = buildInviteMessage(shareEvent, 'https://ejemplo.test/e/abc')
-check('mensaje de evento incluye fecha y lugar, pero no músicos ni pagos', generalMessage.includes('Boda Ana')
-  && generalMessage.includes('Salón El Rancho') && generalMessage.includes('Ubicación en Maps')
-  && !generalMessage.includes('Luis Pérez') && !generalMessage.includes('800')
-  && !generalMessage.includes('p.m..'))
-check('mensaje de invitación lleva el enlace y no muestra pagos', inviteText.includes('https://ejemplo.test/e/abc')
+check('mensaje de evento incluye fecha y lugar con emojis, pero no músicos ni pagos', generalMessage.includes('Boda Ana')
+  && generalMessage.includes('Salón El Rancho') && generalMessage.includes('🗺️ Ubicación:')
+  && generalMessage.includes('📅 Fecha:') && !generalMessage.includes('Luis Pérez')
+  && !generalMessage.includes('800') && !generalMessage.includes('p.m..'))
+check('mensaje de invitación lleva emojis y el enlace, sin pagos', inviteText.includes('https://ejemplo.test/e/abc')
+  && inviteText.includes('Hola 👋') && inviteText.includes('👉 Confirma si puedes asistir')
   && inviteText.includes('Boda Ana') && !inviteText.includes('Luis Pérez')
   && !inviteText.includes('800') && !inviteText.includes('$/'))
+const confirmationText = buildConfirmationMessage(shareEvent, {
+  name: 'Luis Pérez', phone: '5512345678', payment_per_tanda: 200, payment_amount: 1200
+})
+check('mensaje individual confirma con emojis y solo el pago del músico',
+  confirmationText.includes('Hola Luis 👋') && confirmationText.includes('🎺')
+  && confirmationText.includes('📅 Fecha:') && confirmationText.includes('💰 Tu pago:')
+  && confirmationText.includes('$1,200.00') && confirmationText.includes('✅ Asistencia confirmada')
+  && !confirmationText.includes('Marta') && !confirmationText.includes('👉 Confirma'))
 check('enlace de WhatsApp lleva el teléfono y el mensaje', waLink('5512345678', inviteText)
   === 'https://wa.me/525512345678?text=' + encodeURIComponent(inviteText)
   && waNumber('525512345678') === '525512345678')
@@ -227,9 +237,11 @@ const carlosCatalog = catalogWithCarlos.find((m) => m.phone === '525512345678')
 check('confirmación reutiliza el catálogo por teléfono', carlosCatalog?.name === 'Carlos Invitado'
   && carlosRow.musician_id === carlosCatalog.id)
 const inviteList = await call('GET', '/events/' + withNewMusician.id + '/invites')
-check('respuestas visibles para el encargado', inviteList.length === 1
+check('respuestas visibles con el pago para el encargado', inviteList.length === 1
   && inviteList[0].responses.length === 1
-  && inviteList[0].responses[0].name === 'Carlos Invitado')
+  && inviteList[0].responses[0].name === 'Carlos Invitado'
+  && inviteList[0].responses[0].payment_per_tanda === 300
+  && inviteList[0].responses[0].payment_amount === 600)
 const declined = await respond('No Puedo', '5511113333', 'declined')
 const afterDecline = await call('GET', '/events/' + withNewMusician.id)
 check('rechazo se registra sin agregar al músico', declined.ok && declined.data.status === 'declined'

@@ -1,4 +1,4 @@
-// Utilidades para invitar a los músicos a un evento, sin librerías externas.
+// Utilidades para invitar y confirmar músicos en un evento, sin librerías externas.
 // Se mantienen separadas del componente para poder probarlas sin DOM.
 
 function fmtStamp(value) {
@@ -13,6 +13,9 @@ function fmtStamp(value) {
 
 // Intl ya termina en «p.m.» en es-MX: no queremos «p.m..».
 const withPeriod = (text) => (text && !/[.!?]$/.test(text) ? `${text}.` : text)
+
+const fmtMoney = (n) =>
+  new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(n) || 0)
 
 export function waNumber(phone) {
   const digits = String(phone || '').replace(/\D/g, '')
@@ -32,34 +35,68 @@ export function mapsForEvent(event) {
   return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : ''
 }
 
-// Mensaje general: solo logística. Nunca incluye nombres de músicos ni importes.
-export function buildEventMessage(event) {
+// Cada dato en su propia línea con emoji, para que WhatsApp se lea de un vistazo.
+function eventLogistics(event) {
   const place = [event.location_name, event.address].filter(Boolean).join(' — ')
   const maps = mapsForEvent(event)
   const tandas = Math.round(Number(event.tandas)) || 0
   return [
-    `Evento: ${event.title || 'Sin título'}`,
-    event.starts_at ? `Fecha: ${withPeriod(fmtStamp(event.starts_at))}` : '',
-    tandas > 0 ? `Tandas: ${tandas} (${tandas} hora${tandas === 1 ? '' : 's'}).` : '',
-    event.ends_at ? `Fin estimado: ${withPeriod(fmtStamp(event.ends_at))}` : '',
-    place ? `Lugar: ${place}.` : '',
-    maps ? `Ubicación en Maps: ${maps}` : '',
-    event.band_name ? `Agrupación: ${event.band_name}.` : '',
-    event.notes ? `Notas: ${event.notes}` : '',
-    'Enviado desde MariachiTotal'
-  ].filter(Boolean).join('\n')
+    event.starts_at ? `📅 Fecha: ${withPeriod(fmtStamp(event.starts_at))}` : null,
+    tandas > 0 ? `⏱️ Tandas: ${tandas} (${tandas} hora${tandas === 1 ? '' : 's'}).` : null,
+    event.ends_at ? `🏁 Fin estimado: ${withPeriod(fmtStamp(event.ends_at))}` : null,
+    place ? `📍 Lugar: ${place}.` : null,
+    maps ? `🗺️ Ubicación: ${maps}` : null,
+    event.band_name ? `🎼 Agrupación: ${event.band_name}.` : null,
+    event.notes ? `📝 Notas: ${event.notes}` : null
+  ].filter((line) => line !== null)
 }
 
-// El enlace público sustituye a los mensajes individuales: cada músico entra,
-// se identifica con nombre y teléfono y confirma o rechaza su asistencia.
-export function buildInviteMessage(event, publicUrl) {
-  const logistics = buildEventMessage(event)
-    .split('\n')
-    .filter((line) => line && !line.startsWith('Evento:') && line !== 'Enviado desde MariachiTotal')
+const titleLine = (event) => `🎺 *${event.title || 'Evento'}* 🎺`
+
+// Vista previa general: solo logística, sin nombres de músicos ni importes.
+export function buildEventMessage(event) {
   return [
-    `Hola 👋, te invito a ${event.title || 'un evento'}.`,
-    ...logistics,
-    publicUrl ? `Confirma si puedes asistir aquí: ${publicUrl}` : '',
+    titleLine(event),
+    '',
+    ...eventLogistics(event),
+    '',
     'Enviado desde MariachiTotal'
-  ].filter(Boolean).join('\n')
+  ].join('\n')
+}
+
+// Invitación pública: mismo detalle con emojis + el enlace para confirmar.
+export function buildInviteMessage(event, publicUrl) {
+  return [
+    'Hola 👋, te invito a este evento:',
+    '',
+    titleLine(event),
+    '',
+    ...eventLogistics(event),
+    '',
+    publicUrl ? `👉 Confirma si puedes asistir aquí: ${publicUrl}` : null,
+    '',
+    'Enviado desde MariachiTotal'
+  ].filter((line) => line !== null).join('\n')
+}
+
+// Mensaje individual post-confirmación: aquí sí aparece SU pago.
+export function buildConfirmationMessage(event, response) {
+  const first = String(response?.name || '').trim().split(/\s+/)[0]
+  const tandas = Math.round(Number(event.tandas)) || 0
+  const rate = Number(response?.payment_per_tanda ?? response?.invite_rate_per_tanda) || 0
+  const amount = Number(response?.payment_amount) || (rate > 0 && tandas > 0 ? rate * tandas : 0)
+  return [
+    first ? `Hola ${first} 👋,` : 'Hola 👋,',
+    '',
+    titleLine(event),
+    '',
+    ...eventLogistics(event),
+    '',
+    amount > 0 || rate > 0
+      ? `💰 Tu pago: *${fmtMoney(amount)}*${rate > 0 ? ` (${fmtMoney(rate)} por tanda)` : ''}`
+      : null,
+    '✅ Asistencia confirmada',
+    '',
+    'Enviado desde MariachiTotal'
+  ].filter((line) => line !== null).join('\n')
 }
