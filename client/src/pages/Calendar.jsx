@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { api, useLoad, money, timeShort } from '../api.js'
+import { api, useLoad, money, timeShort, parseDate } from '../api.js'
 import { Loading, ErrorBox, Section, Badge } from '../ui.jsx'
 
 const pad = (n) => String(n).padStart(2, '0')
@@ -76,7 +76,7 @@ export default function Calendar() {
       </Section>
 
       {selected && (
-        <Section title={new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(selected))}
+        <Section title={new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long' }).format(parseDate(selected))}
           actions={<Link to={'/eventos/nuevo?date=' + selected} className="btn btn-primary">+ Agendar este día</Link>}>
           {selectedEvents.length === 0 ? <div className="empty">Día libre, puedes agendar 🎉</div> : (
             <div className="card-list">

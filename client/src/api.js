@@ -50,7 +50,7 @@ export function useLoad(loader, deps = []) {
 export const money = (n) =>
   new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(n) || 0)
 
-const parseDate = (value) => {
+export const parseDate = (value) => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
     const [y, m, d] = String(value).split('-').map(Number)
     return new Date(y, m - 1, d)
