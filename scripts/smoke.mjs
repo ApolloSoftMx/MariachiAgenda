@@ -178,8 +178,8 @@ const noCatalogDetail = await call('GET', '/events/' + noCatalog.id)
 check('se puede desactivar el alta automática', noCatalogDetail.musicians[0].musician_id === null
   && !(await call('GET', '/musicians')).some((m) => m.name === 'Solo este evento'))
 
-// El botón de compartir genera el texto en el cliente (wa.me no adjunta archivos).
-const { buildEventMessage, personalMessage, waLink, waNumber } = await import('../client/src/eventShare.js')
+// La invitación pública no incluye nombres de músicos ni importes en el mensaje.
+const { buildEventMessage, buildInviteMessage, waLink, waNumber } = await import('../client/src/eventShare.js')
 const shareEvent = {
   title: 'Boda Ana', starts_at: '2026-12-12T19:00', ends_at: '2026-12-13T01:00', tandas: 6,
   location_name: 'Salón El Rancho', address: 'Av. Juárez 123', band_name: 'Mariachi Sol',
@@ -187,17 +187,62 @@ const shareEvent = {
   musicians: [{ name: 'Luis Pérez', phone: '5512345678', payment_amount: 800, payment_per_tanda: 200, paid: true }]
 }
 const generalMessage = buildEventMessage(shareEvent)
-const personalMsg = personalMessage(generalMessage, shareEvent.musicians[0])
-check('mensaje de evento incluye fecha, lugar y músicos', generalMessage.includes('Boda Ana')
-  && generalMessage.includes('Salón El Rancho') && generalMessage.includes('Luis Pérez')
-  && generalMessage.includes('Ubicación en Maps') && !generalMessage.includes('800')
+const inviteText = buildInviteMessage(shareEvent, 'https://ejemplo.test/e/abc')
+check('mensaje de evento incluye fecha y lugar, pero no músicos ni pagos', generalMessage.includes('Boda Ana')
+  && generalMessage.includes('Salón El Rancho') && generalMessage.includes('Ubicación en Maps')
+  && !generalMessage.includes('Luis Pérez') && !generalMessage.includes('800')
   && !generalMessage.includes('p.m..'))
-check('mensaje personal solo muestra el pago del músico', personalMsg.includes('Hola Luis')
-  && personalMsg.includes('$800.00') && personalMsg.includes('ya pagado')
-  && personalMsg.includes('Boda Ana'))
-check('enlace de WhatsApp lleva el teléfono y el mensaje', waLink('5512345678', personalMsg)
-  === 'https://wa.me/525512345678?text=' + encodeURIComponent(personalMsg)
+check('mensaje de invitación lleva el enlace y no muestra pagos', inviteText.includes('https://ejemplo.test/e/abc')
+  && inviteText.includes('Boda Ana') && !inviteText.includes('Luis Pérez')
+  && !inviteText.includes('800') && !inviteText.includes('$/'))
+check('enlace de WhatsApp lleva el teléfono y el mensaje', waLink('5512345678', inviteText)
+  === 'https://wa.me/525512345678?text=' + encodeURIComponent(inviteText)
   && waNumber('525512345678') === '525512345678')
+
+// Flujo completo de invitación: enlace público, confirmación, rechazo y reingreso.
+const publicRoot = base.replace(/\/api$/, '')
+const invite = await call('POST', '/events/' + withNewMusician.id + '/invites', { rate_per_tanda: 300 })
+check('invitación creada con pago por tanda', invite.token && invite.rate_per_tanda === 300
+  && invite.publicUrl === publicRoot + '/e/' + invite.token)
+const invitePage = await fetch(publicRoot + '/e/' + invite.token)
+const inviteHtml = await invitePage.text()
+check('página pública no muestra importes ni músicos', invitePage.ok
+  && !inviteHtml.includes('$') && !inviteHtml.includes('Marta Nueva')
+  && inviteHtml.includes('¿Puedes asistir?'))
+const respond = async (name, phone, status) => {
+  const res = await fetch(publicRoot + '/e/' + invite.token + '/respond', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, phone, status })
+  })
+  return { ok: res.ok, data: await res.json().catch(() => ({})) }
+}
+const confirmed = await respond('Carlos Invitado', '5512345678', 'confirmed')
+const confirmedDetail = await call('GET', '/events/' + withNewMusician.id)
+const carlosRow = confirmedDetail.musicians.find((m) => m.phone === '525512345678')
+check('músico confirma y se agrega al evento', confirmed.ok && confirmed.data.status === 'confirmed'
+  && !!carlosRow && carlosRow.payment_per_tanda === 300 && carlosRow.payment_amount === 600
+  && carlosRow.paid === 0)
+const catalogWithCarlos = await call('GET', '/musicians')
+const carlosCatalog = catalogWithCarlos.find((m) => m.phone === '525512345678')
+check('confirmación reutiliza el catálogo por teléfono', carlosCatalog?.name === 'Carlos Invitado'
+  && carlosRow.musician_id === carlosCatalog.id)
+const inviteList = await call('GET', '/events/' + withNewMusician.id + '/invites')
+check('respuestas visibles para el encargado', inviteList.length === 1
+  && inviteList[0].responses.length === 1
+  && inviteList[0].responses[0].name === 'Carlos Invitado')
+const declined = await respond('No Puedo', '5511113333', 'declined')
+const afterDecline = await call('GET', '/events/' + withNewMusician.id)
+check('rechazo se registra sin agregar al músico', declined.ok && declined.data.status === 'declined'
+  && !afterDecline.musicians.some((m) => m.phone === '525511113333'))
+await respond('Carlos Invitado', '5512345678', 'declined')
+const afterExit = await call('GET', '/events/' + withNewMusician.id)
+check('cambiar a no asiste quita al músico del evento',
+  !afterExit.musicians.some((m) => m.phone === '525512345678'))
+await respond('Carlos Invitado', '5512345678', 'confirmed')
+const afterReturn = await call('GET', '/events/' + withNewMusician.id)
+const carlosAgain = afterReturn.musicians.filter((m) => m.phone === '525512345678')
+check('confirmar de nuevo lo reagrega sin duplicarlo', carlosAgain.length === 1
+  && (await call('GET', '/events/' + withNewMusician.id + '/invites'))[0].responses.length === 2)
 
 const report = await call('GET', '/reports?from=2026-12-01&to=2026-12-31')
 check('reporte cobrado', report.totals.charged === 15000)

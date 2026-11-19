@@ -115,6 +115,31 @@ CREATE TABLE IF NOT EXISTS event_musicians (
 );
 CREATE INDEX IF NOT EXISTS idx_em_event ON event_musicians(event_id);
 
+-- Invitaciones públicas: cada enlace tiene un pago por tanda propio y registra
+-- quién confirmó o rechazó, sin revelar importes en la página del músico.
+CREATE TABLE IF NOT EXISTS event_invites (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  rate_per_tanda REAL NOT NULL DEFAULT 0,
+  created_by INTEGER REFERENCES users(id),
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_invite_event ON event_invites(event_id);
+
+CREATE TABLE IF NOT EXISTS event_invite_responses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  invite_id INTEGER NOT NULL REFERENCES event_invites(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('confirmed', 'declined')),
+  event_musician_id INTEGER REFERENCES event_musicians(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(invite_id, phone)
+);
+CREATE INDEX IF NOT EXISTS idx_invite_response_invite ON event_invite_responses(invite_id);
+
 CREATE TABLE IF NOT EXISTS expenses (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   event_id INTEGER REFERENCES events(id) ON DELETE SET NULL,

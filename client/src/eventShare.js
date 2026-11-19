@@ -1,8 +1,5 @@
-// Utilidades para compartir la ficha de un evento con los músicos, sin librerías externas.
+// Utilidades para invitar a los músicos a un evento, sin librerías externas.
 // Se mantienen separadas del componente para poder probarlas sin DOM.
-
-const fmtMoney = (n) =>
-  new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(n) || 0)
 
 function fmtStamp(value) {
   if (!value) return ''
@@ -35,10 +32,8 @@ export function mapsForEvent(event) {
   return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : ''
 }
 
-// Mensaje general: solo logística y nombres. Los importes van en el mensaje personal.
+// Mensaje general: solo logística. Nunca incluye nombres de músicos ni importes.
 export function buildEventMessage(event) {
-  const musicians = Array.isArray(event.musicians) ? event.musicians : []
-  const names = musicians.map((m) => String(m.name || '').trim()).filter(Boolean)
   const place = [event.location_name, event.address].filter(Boolean).join(' — ')
   const maps = mapsForEvent(event)
   const tandas = Math.round(Number(event.tandas)) || 0
@@ -50,24 +45,21 @@ export function buildEventMessage(event) {
     place ? `Lugar: ${place}.` : '',
     maps ? `Ubicación en Maps: ${maps}` : '',
     event.band_name ? `Agrupación: ${event.band_name}.` : '',
-    names.length ? `Músicos: ${names.join(', ')}.` : '',
     event.notes ? `Notas: ${event.notes}` : '',
     'Enviado desde MariachiTotal'
   ].filter(Boolean).join('\n')
 }
 
-// Cada músico recibe el mismo detalle, pero solo ve su propio pago.
-export function personalMessage(message, musician) {
-  const first = String(musician?.name || '').trim().split(/\s+/)[0]
-  const amount = Number(musician?.payment_amount) || 0
-  const rate = Number(musician?.payment_per_tanda) || 0
-  const lines = []
-  if (first) lines.push(`Hola ${first} 👋,`)
-  lines.push(message)
-  if (amount > 0 || rate > 0) {
-    const pago = amount > 0 ? fmtMoney(amount) : 'por definir'
-    const detalle = rate > 0 ? ` (${fmtMoney(rate)} por tanda)` : ''
-    lines.push(`Tu pago: ${pago}${detalle}${musician?.paid ? ' · ya pagado' : ''}.`)
-  }
-  return lines.join('\n')
+// El enlace público sustituye a los mensajes individuales: cada músico entra,
+// se identifica con nombre y teléfono y confirma o rechaza su asistencia.
+export function buildInviteMessage(event, publicUrl) {
+  const logistics = buildEventMessage(event)
+    .split('\n')
+    .filter((line) => line && !line.startsWith('Evento:') && line !== 'Enviado desde MariachiTotal')
+  return [
+    `Hola 👋, te invito a ${event.title || 'un evento'}.`,
+    ...logistics,
+    publicUrl ? `Confirma si puedes asistir aquí: ${publicUrl}` : '',
+    'Enviado desde MariachiTotal'
+  ].filter(Boolean).join('\n')
 }

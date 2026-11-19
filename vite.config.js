@@ -30,7 +30,7 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/q\//, /^\/api\//],
+        navigateFallbackDenylist: [/^\/q\//, /^\/e\//, /^\/api\//],
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}']
       }
     })

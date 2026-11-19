@@ -12,6 +12,7 @@ import {
 import { listBackups, createBackup, backupPath, removeBackup } from './backup.js'
 import { quotePdf, statusLabel, mapsForQuote } from './pdf.js'
 import { getEvent, listEvents, saveEvent, eventColors } from './events.js'
+import { findOrCreateMusician, normalizePhone } from './musicians.js'
 import { quoteEndStamp } from './datetime.js'
 import { setting, getSetting, setSetting, deleteSetting, boolSetting } from './settings.js'
 import { getBot, restartBot, notifyAdminsAboutRegistration } from './bot.js'
@@ -1025,20 +1026,20 @@ export function createApp(config = {}) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Cotización · ${escapeHtml(quote.title)}</title>
 <style>
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f6f3fb;color:#241a3d;padding:20px}
-.card{max-width:640px;margin:0 auto;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 14px 40px rgba(50,20,90,.12)}
-.head{background:#52218c;color:#fff;padding:22px}.head small{opacity:.75;letter-spacing:.12em}
-.body{padding:22px}h1{font-size:1.4rem;margin:8px 0 18px}.row{display:flex;gap:12px;justify-content:space-between;border-bottom:1px solid #eee;padding:10px 0}
-.row span{color:#6b6280}.row strong{text-align:right}.total{font-size:1.35rem;color:#52218c}
-.block{margin-top:18px;white-space:pre-wrap;line-height:1.5}.btn{display:inline-block;margin-top:22px;background:#52218c;color:#fff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600;border:0;cursor:pointer;font-family:inherit;font-size:1rem}
-.accept{margin-top:28px;padding:18px;border-radius:14px;background:#f6f2ff;border:1px solid #e2d2ff}
-.accept.done{background:#eafff1;border-color:#b6e8c8}
-.accept h2{margin:0 0 8px;font-size:1.05rem;color:#52218c}
-.accept p{margin:6px 0 14px;color:#6b6280;font-size:.92rem}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f7f6fb;color:#1f2430;padding:20px}
+.card{max-width:640px;margin:0 auto;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 14px 40px rgba(55,30,100,.14)}
+.head{background:#6d28d9;color:#ffffff;padding:22px}.head small{opacity:.75;letter-spacing:.12em}
+.body{padding:22px}h1{font-size:1.35rem;margin:8px 0 18px}.row{display:flex;gap:12px;justify-content:space-between;border-bottom:1px solid #e8e5f0;padding:10px 0}
+.row span{color:#6b7280}.row strong{text-align:right}.total{font-size:1.35rem;color:#6d28d9}
+.block{margin-top:18px;white-space:pre-wrap;line-height:1.5}.btn{display:inline-block;margin-top:22px;background:#6d28d9;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600;border:0;cursor:pointer;font-family:inherit;font-size:1rem}
+.accept{margin-top:28px;padding:18px;border-radius:14px;background:#f4edff;border:1px solid #e8e5f0}
+.accept.done{background:#d5f0df;border-color:#e8e5f0}
+.accept h2{margin:0 0 8px;font-size:1.05rem;color:#6d28d9}
+.accept p{margin:6px 0 14px;color:#6b7280;font-size:.92rem}
 .accept form{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
 .accept input{max-width:100%;font-family:inherit}
 .accept .btn{margin-top:0}
-.error{color:#b42318!important;font-weight:600}
+.error{color:#b52038!important;font-weight:600}
 </style></head><body><div class="card"><div class="head"><small>MARIACHITOTAL</small><h1>Cotización</h1></div><div class="body">
 <h1>${escapeHtml(quote.title)}</h1>
 ${row('Cliente', quote.client_name)}
@@ -1163,6 +1164,233 @@ ${acceptBlock}
     if (!existing || !canAccess(req.user, existing)) return notFound(res)
     run('DELETE FROM events WHERE id = ?', existing.id)
     res.json({ ok: true })
+  })
+
+  // ---------- invitaciones públicas a eventos ----------
+  const inviteRate = money.refine(
+    (n) => n >= 0 && n <= 100000,
+    'El pago por tanda debe estar entre 0 y 100000'
+  )
+  const zInviteResponse = z.object({
+    name: z.string().trim().min(2, 'Escribe tu nombre').max(120),
+    status: z.enum(['confirmed', 'declined'])
+  })
+  const getInvite = (token) => one(`
+    SELECT ei.*, e.title, e.starts_at, e.ends_at, e.tandas, e.location_name, e.address,
+           e.maps_url, e.notes, b.name AS band_name
+    FROM event_invites ei
+    JOIN events e ON e.id = ei.event_id
+    LEFT JOIN bands b ON b.id = e.band_id
+    WHERE ei.token = ?`, token)
+  const fmtEventStamp = (value) => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(value || ''))
+    if (!match) return String(value || '')
+    const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]))
+    const text = new Intl.DateTimeFormat('es-MX', {
+      weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    }).format(date)
+    return /[.!?]$/.test(text) ? text : `${text}.`
+  }
+
+  app.post('/api/events/:id/invites', requireAuth, subGuard, (req, res) => {
+    const existing = one('SELECT * FROM events WHERE id = ?', idParam(req))
+    if (!existing || !canAccess(req.user, existing)) return notFound(res)
+    const parsed = z.object({ rate_per_tanda: inviteRate.optional().default(0) })
+      .safeParse(req.body || {})
+    if (!parsed.success) return res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() })
+    const token = crypto.randomBytes(18).toString('hex')
+    const info = run(
+      'INSERT INTO event_invites (event_id, token, rate_per_tanda, created_by) VALUES (?, ?, ?, ?)',
+      existing.id, token, parsed.data.rate_per_tanda, req.user.id
+    )
+    res.status(201).json({
+      id: Number(info.lastInsertRowid), token, rate_per_tanda: parsed.data.rate_per_tanda,
+      publicUrl: `${publicBase(req)}/e/${token}`
+    })
+  })
+
+  app.get('/api/events/:id/invites', requireAuth, subGuard, (req, res) => {
+    const existing = one('SELECT * FROM events WHERE id = ?', idParam(req))
+    if (!existing || !canAccess(req.user, existing)) return notFound(res)
+    const invites = all('SELECT * FROM event_invites WHERE event_id = ? ORDER BY created_at DESC, id DESC', existing.id)
+    const responses = all(`SELECT ir.*, ei.token AS invite_token
+      FROM event_invite_responses ir JOIN event_invites ei ON ei.id = ir.invite_id
+      WHERE ei.event_id = ? ORDER BY ir.updated_at DESC, ir.id DESC`, existing.id)
+    res.json(invites.map((invite) => ({
+      ...invite,
+      responses: responses.filter((r) => r.invite_id === invite.id)
+    })))
+  })
+
+  app.get('/e/:token', (req, res) => {
+    const invite = getInvite(req.params.token)
+    if (!invite) return res.status(404).type('text/plain').send('Invitación no encontrada')
+    const maps = invite.maps_url || (invite.address || invite.location_name
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(invite.address || invite.location_name)}`
+      : '')
+    const place = [invite.location_name, invite.address].filter(Boolean).join(' — ')
+    const row = (label, value) => value
+      ? `<div class="row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>` : ''
+    const tokenJs = JSON.stringify(invite.token)
+    const nameJs = JSON.stringify(invite.title || 'Evento')
+    res.type('html').send(`<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Invitación · ${escapeHtml(invite.title)}</title>
+<style>
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f7f6fb;color:#1f2430;padding:20px}
+.card{max-width:640px;margin:0 auto;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 14px 40px rgba(55,30,100,.14)}
+.head{background:#6d28d9;color:#ffffff;padding:22px}.head small{opacity:.75;letter-spacing:.12em}
+.head h1{margin:8px 0 0;font-size:1.35rem}
+.body{padding:22px}.row{display:flex;gap:12px;justify-content:space-between;border-bottom:1px solid #e8e5f0;padding:10px 0}
+.row span{color:#6b7280}.row strong{text-align:right}
+.block{margin-top:18px;white-space:pre-wrap;line-height:1.5}
+.answer{margin-top:28px;padding:18px;border-radius:14px;background:#f4edff;border:1px solid #e8e5f0}
+.answer.done{background:#d5f0df;border-color:#e8e5f0}
+.answer h2{margin:0 0 8px;font-size:1.05rem;color:#6d28d9}
+.answer p{margin:6px 0 14px;color:#6b7280;font-size:.92rem}
+.answer label{display:block;margin:12px 0 6px;font-weight:600;font-size:.92rem}
+.answer input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #e8e5f0;border-radius:10px;font:inherit}
+.answer .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.btn{display:inline-block;background:#6d28d9;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:600;border:0;cursor:pointer;font:inherit}
+.btn.no{background:#ffffff;color:#6d28d9;border:1px solid #e8e5f0}
+.btn:disabled{opacity:.6;cursor:wait}
+.error{color:#b52038!important;font-weight:600}
+</style></head><body><div class="card"><div class="head"><small>MARIACHITOTAL</small><h1>Invitación a evento</h1></div><div class="body">
+<h1>${escapeHtml(invite.title)}</h1>
+${row('Fecha', fmtEventStamp(invite.starts_at))}
+${row('Fin estimado', fmtEventStamp(invite.ends_at))}
+${Number(invite.tandas) > 0 ? row('Tandas', `${invite.tandas} (${invite.tandas} hora${invite.tandas === 1 ? '' : 's'})`) : ''}
+${row('Agrupación', invite.band_name)}
+${row('Lugar', place)}
+${maps ? `<div class="row"><span>Maps</span><a href="${escapeHtml(maps)}" target="_blank" rel="noreferrer">Abrir ubicación</a></div>` : ''}
+${invite.notes ? `<div class="block"><strong>Notas</strong><br>${escapeHtml(invite.notes)}</div>` : ''}
+<div class="answer" id="answer">
+  <h2>¿Puedes asistir?</h2>
+  <p>Escribe tu nombre y teléfono para identificarte. Si ya estás en el catálogo, usaremos tus datos existentes.</p>
+  <form id="respond-form">
+    <label for="invite-name">Nombre</label>
+    <input id="invite-name" name="name" autocomplete="name" maxlength="120" required>
+    <label for="invite-phone">Teléfono</label>
+    <input id="invite-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="25" required>
+    <div class="btns">
+      <button class="btn" type="submit" data-status="confirmed">✅ Confirmar asistencia</button>
+      <button class="btn no" type="button" id="decline">No puedo asistir</button>
+    </div>
+    <p class="error" id="respond-error" role="alert"></p>
+  </form>
+</div>
+<script>
+(function () {
+  const token = ${tokenJs}
+  const title = ${nameJs}
+  const key = 'mariachi-invite-' + token
+  const box = document.getElementById('answer')
+  const form = document.getElementById('respond-form')
+  const error = document.getElementById('respond-error')
+  const buttons = [...form.querySelectorAll('button')]
+  const saved = (() => { try { return JSON.parse(sessionStorage.getItem(key) || 'null') } catch { return null } })()
+  const showDone = (data) => {
+    sessionStorage.setItem(key, JSON.stringify(data))
+    box.classList.add('done')
+    box.innerHTML = '<h2>' + (data.status === 'confirmed' ? '✅ Asistencia confirmada' : 'Respuesta registrada') + '</h2>'
+      + '<p>' + (data.status === 'confirmed'
+        ? 'Gracias, ' + data.name + '. Ya fuiste agregado al evento «' + title + '».'
+        : 'Gracias, ' + data.name + '. Registramos que no puedes asistir a «' + title + '».')
+      + '</p><button class="btn no" id="change">Cambiar respuesta</button>'
+    document.getElementById('change').addEventListener('click', () => {
+      sessionStorage.removeItem(key); location.reload()
+    })
+  }
+  if (saved && saved.name) showDone(saved)
+  async function respond(status) {
+    const name = form.name.value.trim()
+    const phone = form.phone.value.trim()
+    error.textContent = ''
+    if (name.length < 2 || phone.replace(/\\D/g, '').length < 7) {
+      error.textContent = 'Escribe tu nombre y un teléfono válido.'; return
+    }
+    buttons.forEach((b) => { b.disabled = true })
+    try {
+      const res = await fetch('/e/' + token + '/respond', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, phone, status })
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'No se pudo registrar tu respuesta.')
+      showDone(data)
+    } catch (err) {
+      error.textContent = err.message
+      buttons.forEach((b) => { b.disabled = false })
+    }
+  }
+  form.addEventListener('submit', (e) => { e.preventDefault(); respond('confirmed') })
+  document.getElementById('decline').addEventListener('click', () => respond('declined'))
+})()
+</script>
+</div></div></body></html>`)
+  })
+
+  app.post('/e/:token/respond', (req, res) => {
+    const invite = getInvite(req.params.token)
+    if (!invite) return res.status(404).json({ error: 'Invitación no encontrada' })
+    const parsed = zInviteResponse.safeParse(req.body || {})
+    if (!parsed.success) return res.status(400).json({ error: 'Escribe tu nombre y un teléfono válido.' })
+    const digits = String(req.body?.phone || '').replace(/\D/g, '')
+    if (digits.length < 7 || digits.length > 15) {
+      return res.status(400).json({ error: 'Escribe un teléfono válido.' })
+    }
+    const phone = normalizePhone(digits)
+    const name = parsed.data.name.replace(/\s+/g, ' ')
+    const status = parsed.data.status
+    const rate = Number(invite.rate_per_tanda) || 0
+    const payment = rate * (Number(invite.tandas) || 0)
+    db.exec('BEGIN')
+    try {
+      const previous = one('SELECT * FROM event_invite_responses WHERE invite_id = ? AND phone = ?', invite.id, phone)
+      let trackedId = previous?.event_musician_id || null
+      if (status === 'confirmed') {
+        if (trackedId && !one('SELECT id FROM event_musicians WHERE id = ? AND event_id = ?', trackedId, invite.event_id)) {
+          trackedId = null
+        }
+        if (!trackedId) {
+          const catalog = findOrCreateMusician({
+            name, phone: digits, defaultPayment: payment || rate, createdBy: invite.created_by
+          })
+          const existing = all('SELECT id, musician_id, phone FROM event_musicians WHERE event_id = ?', invite.event_id)
+            .find((m) => Number(m.musician_id) === Number(catalog.id) || normalizePhone(m.phone) === phone)
+          if (existing) {
+            trackedId = null
+            run('UPDATE event_musicians SET name = ?, phone = ? WHERE id = ?', name, phone, existing.id)
+          } else {
+            const info = run(`INSERT INTO event_musicians
+              (event_id, musician_id, name, phone, payment_per_tanda, payment_amount, paid)
+              VALUES (?, ?, ?, ?, ?, ?, 0)`,
+            invite.event_id, catalog.id, name, phone, rate, payment)
+            trackedId = Number(info.lastInsertRowid)
+          }
+        } else {
+          run('UPDATE event_musicians SET name = ?, phone = ? WHERE id = ?', name, phone, trackedId)
+        }
+      } else if (trackedId) {
+        run('DELETE FROM event_musicians WHERE id = ?', trackedId)
+        trackedId = null
+      }
+      if (previous) {
+        run(`UPDATE event_invite_responses
+             SET name = ?, status = ?, event_musician_id = ?, updated_at = datetime('now') WHERE id = ?`,
+        name, status, trackedId, previous.id)
+      } else {
+        run(`INSERT INTO event_invite_responses
+             (invite_id, name, phone, status, event_musician_id) VALUES (?, ?, ?, ?, ?)`,
+        invite.id, name, phone, status, trackedId)
+      }
+      db.exec('COMMIT')
+      res.json({ ok: true, name, phone, status })
+    } catch (err) {
+      db.exec('ROLLBACK')
+      console.error('[event invite response]', err)
+      res.status(500).json({ error: 'No se pudo registrar tu respuesta. Inténtalo de nuevo.' })
+    }
   })
 
   // ---------- expenses ----------

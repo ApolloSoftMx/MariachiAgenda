@@ -9,10 +9,10 @@ Sistema de agenda, clientes y finanzas para un músico de mariachi. Funciona com
 - **Tu grupo vs. invitado**: en cada evento indicas si eres el encargado o si otro encargado te invitó.
 - **Clientes** con nombre y teléfono (botones de WhatsApp y llamada), notas y total cobrado.
 - **Músicos por evento**: número planeado de músicos y, opcionalmente, nombre, teléfono, pago y marca de pagado por cada uno. Catálogo reutilizable; los músicos nuevos capturados en el evento se dan de alta automáticamente (opcional).
-- **Compartir eventos**: botón 📤 en cada evento para copiar el mensaje o abrir WhatsApp. Los músicos con teléfono tienen un enlace individual con la logística y su propio pago.
+- **Invitaciones a eventos**: botón 📤 para copiar la logística o abrir WhatsApp. Define el pago por tanda de la invitación, genera un **enlace público** y envíalo a los músicos: cada uno se identifica con nombre y teléfono, confirma o rechaza su asistencia y, si confirma, se agrega al evento. El mensaje no muestra nombres de músicos ni importes; la página pública tampoco.
 - **Finanzas**: total cobrado, anticipo, cuenta del depósito, pagos a músicos, otros gastos y **utilidad por rango de fechas** (reporte + exportación CSV).
 - **Cotizaciones**: registra propuestas con clientes, **tandas**, hora de fin estimada, músicos, total, vigencia y datos de depósito. Genera **PDF**, **imagen PNG** y un enlace público para el cliente. Al aceptar, crea el evento con las mismas tandas y fin calculado.
-- **Envío por WhatsApp sin API externa**: la app construye el mensaje y el enlace `wa.me/...`; tú eliges cuándo enviarlo. El mensaje incluye el enlace a la cotización y al PDF.
+- **Envío por WhatsApp sin API externa**: la app construye el mensaje y el enlace `wa.me/...`; tú eliges cuándo enviarlo. El mensaje incluye el enlace a la cotización y al PDF, o el enlace público de la invitación al evento.
 - **Dos roles de sistema**: **super administrador** (usuarios, Telegram, respaldos) y **usuario final** (agenda, clientes y finanzas). No se confunden con el rol por evento.
 - **Colores en la agenda**: los eventos de tu grupo toman el color de la agrupación; los eventos como invitado usan un color configurable en **Configuración → Color de eventos como invitado** (o `GUEST_EVENT_COLOR` en `.env`).
 - **Tema claro y oscuro**: botón ◐ en la barra superior, en el login y en el manual público; o en **Configuración → Apariencia**. Se guarda por dispositivo y «Sistema» sigue la preferencia del dispositivo.

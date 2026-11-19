@@ -26,7 +26,12 @@ export const EVENT_SELECT = `
          b.color AS band_color, a.name AS advance_account_name,
          (SELECT COUNT(*) FROM event_musicians em WHERE em.event_id = e.id) AS musician_count,
          (SELECT COALESCE(SUM(em.payment_amount), 0) FROM event_musicians em WHERE em.event_id = e.id) AS musician_total,
-         (SELECT COALESCE(SUM(em.payment_amount), 0) FROM event_musicians em WHERE em.event_id = e.id AND em.paid = 1) AS musician_paid
+         (SELECT COALESCE(SUM(em.payment_amount), 0) FROM event_musicians em WHERE em.event_id = e.id AND em.paid = 1) AS musician_paid,
+         (SELECT COUNT(*) FROM event_invites ei WHERE ei.event_id = e.id) AS invite_count,
+         (SELECT COUNT(*) FROM event_invites ei JOIN event_invite_responses ir ON ir.invite_id = ei.id
+            WHERE ei.event_id = e.id AND ir.status = 'confirmed') AS invite_confirmed,
+         (SELECT COUNT(*) FROM event_invites ei JOIN event_invite_responses ir ON ir.invite_id = ei.id
+            WHERE ei.event_id = e.id AND ir.status = 'declined') AS invite_declined
   FROM events e
   LEFT JOIN clients c ON c.id = e.client_id
   LEFT JOIN bands b ON b.id = e.band_id
