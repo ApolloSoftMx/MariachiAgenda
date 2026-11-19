@@ -1,0 +1,33 @@
+{
+  "name": "agenda-mariachi",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c magenta,cyan \"node --watch server/index.js\" \"vite\"",
+    "build": "vite build",
+    "start": "node server/index.js",
+    "test": "node scripts/smoke.mjs",
+    "backup": "node scripts/backup.mjs",
+    "icons": "node scripts/gen-icons.js"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "grammy": "^1.36.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.7.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.1.2",
+    "vite": "^7.0.0",
+    "vite-plugin-pwa": "^1.0.1"
+  }
+}
