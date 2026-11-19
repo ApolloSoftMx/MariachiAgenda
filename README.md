@@ -165,6 +165,8 @@ Escribe `-` en cualquier dato opcional para dejarlo vacío. Los eventos creados 
 
 El token y el nombre del bot los configura el **super administrador** desde la pantalla (o en `.env`). Cualquier usuario puede vincular su propio chat para recibir recordatorios. El bot es opcional: si no hay token, la web funciona igual.
 
+La imagen de perfil del bot está en `public/telegram-bot-avatar.png` (fondo morado y trompeta dorada, 512×512). Súbela desde BotFather con `/setprofilephoto` y elige ese archivo. Si quieres regenerarla, ejecuta `npm run bot-avatar`.
+
 ## Cotizaciones y envío al cliente
 
 1. Registra tus cuentas en **Catálogos → Cuentas** (nombre, banco y CLABE/cuenta). Esos datos aparecerán automáticamente en la cotización.
@@ -289,6 +291,7 @@ ENABLE_SUBSCRIPTIONS=true
 | `npm test` | Prueba de humo de la API (56 comprobaciones) |
 | `npm run backup` | Crea un respaldo en `data/backups/` |
 | `npm run icons` | Regenera los íconos PNG del PWA |
+| `npm run bot-avatar` | Regenera el avatar del bot de Telegram |
 
 ## Estructura
 

@@ -12,7 +12,8 @@
     "start": "node server/index.js",
     "test": "node scripts/smoke.mjs",
     "backup": "node scripts/backup.mjs",
-    "icons": "node scripts/gen-icons.js"
+    "icons": "node scripts/gen-icons.js",
+    "bot-avatar": "node scripts/gen-bot-avatar.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",
