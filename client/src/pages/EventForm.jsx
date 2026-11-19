@@ -74,7 +74,11 @@ export default function EventForm() {
   if (refs.error || eventLoad.error) return <ErrorBox message={refs.error || eventLoad.error} />
 
   const [bands, clients, accounts, catalog] = refs.data || [[], [], [], []]
+  const isGuest = form.role === 'guest'
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }))
+  const setRole = (value) => setForm((f) => value === 'guest'
+    ? { ...f, role: value, client_id: '', advance_amount: 0, advance_account_id: '', musicians: [] }
+    : { ...f, role: value })
   const setTandas = (value) => setForm((f) => ({
     ...f,
     tandas: value,
@@ -174,7 +178,8 @@ export default function EventForm() {
 
   return (
     <div className="stack-lg">
-      <Section title={id ? 'Editar evento' : 'Nuevo evento'} subtitle="Agenda, lugar, clientes y finanzas de la presentación"
+      <Section title={id ? 'Editar evento' : 'Nuevo evento'}
+        subtitle={isGuest ? 'Agenda del evento y tu pago como invitado' : 'Agenda, lugar, clientes y finanzas de la presentación'}
         actions={<Link to="/eventos" className="btn btn-ghost">← Volver a eventos</Link>}>
         <form onSubmit={save} className="stack-lg">
           {error && <ErrorBox message={error} />}
@@ -198,14 +203,20 @@ export default function EventForm() {
               <Field label="Agrupación / encargado">
                 <select value={form.band_id} onChange={(e) => {
                   const band = (bands || []).find((b) => String(b.id) === e.target.value)
-                  setForm((f) => ({ ...f, band_id: e.target.value, role: band?.kind === 'guest' ? 'guest' : 'leader' }))
+                  const nextRole = band?.kind === 'guest' ? 'guest' : 'leader'
+                  setForm((f) => ({
+                    ...f,
+                    band_id: e.target.value,
+                    role: nextRole,
+                    ...(nextRole === 'guest' ? { client_id: '', advance_amount: 0, advance_account_id: '', musicians: [] } : {})
+                  }))
                 }}>
                   <option value="">Sin agrupación</option>
                   {(bands || []).map((b) => <option key={b.id} value={b.id}>{b.name}{b.kind === 'guest' ? ` (invitado de ${b.responsable || 'otro encargado'})` : ' (mi grupo)'}</option>)}
                 </select>
               </Field>
               <Field label="Tu rol en este evento" hint="Es independiente del rol de tu cuenta (super administrador o usuario).">
-                <select value={form.role} onChange={(e) => set('role', e.target.value)}>
+                <select value={form.role} onChange={(e) => setRole(e.target.value)}>
                   <option value="leader">Encargado (mi grupo)</option>
                   <option value="guest">Invitado (otro encargado)</option>
                 </select>
@@ -217,7 +228,7 @@ export default function EventForm() {
                   <option value="cancelled">Cancelado</option>
                 </select>
               </Field>
-              <Field label="Cliente">
+              {!isGuest && <Field label="Cliente">
                 <div className="row gap">
                   <select value={form.client_id} onChange={(e) => set('client_id', e.target.value)}>
                     <option value="">Sin cliente</option>
@@ -225,7 +236,7 @@ export default function EventForm() {
                   </select>
                   <button type="button" className="btn btn-ghost btn-sm" onClick={() => setClientModal(true)}>+ Cliente</button>
                 </div>
-              </Field>
+              </Field>}
             </div>
           </div>
 
@@ -244,31 +255,48 @@ export default function EventForm() {
             </div>
           </div>
 
-          <div className="form-card">
-            <h3>Finanzas del evento</h3>
-            <div className="grid-2">
-              <Field
-                label={form.role === 'guest' ? 'Pago por tanda (lo que te pagan)' : 'Pago por tanda (precio al cliente)'}
-                hint={`Al cambiar la tarifa o las tandas se calcula el total (tarifa × ${form.tandas || 0} tandas).`}
-              >
-                <input type="number" min="0" step="0.01" value={form.rate_per_tanda}
-                  onChange={(e) => setRate(e.target.value)} />
-              </Field>
-              <Field label={form.role === 'guest' ? 'Total que te pagarán' : 'Total que se cobró'}
-                hint="Puedes ajustarlo manualmente si hubo bonos o descuentos.">
-                <input type="number" step="0.01" value={form.charged_amount} onChange={(e) => set('charged_amount', e.target.value)} />
-              </Field>
-              <Field label="Anticipo recibido"><input type="number" step="0.01" value={form.advance_amount} onChange={(e) => set('advance_amount', e.target.value)} /></Field>
-              <Field label="Cuenta del depósito">
-                <select value={form.advance_account_id} onChange={(e) => set('advance_account_id', e.target.value)}>
-                  <option value="">Sin cuenta / efectivo</option>
-                  {(accounts || []).map((a) => <option key={a.id} value={a.id}>{a.name}{a.details ? ` · ${a.details}` : ''}</option>)}
-                </select>
-              </Field>
+          {isGuest ? (
+            <div className="form-card">
+              <h3>Tu pago</h3>
+              <p className="muted small">
+                Como invitado no necesitas cliente ni datos de cobranza. Solo captura cuánto te pagarán por tanda.
+              </p>
+              <div className="grid-2">
+                <Field label="Pago por tanda (lo que te pagarán)"
+                  hint={`Total estimado: tarifa × ${form.tandas || 0} tandas.`}>
+                  <input type="number" min="0" step="0.01" value={form.rate_per_tanda}
+                    onChange={(e) => setRate(e.target.value)} />
+                </Field>
+                <Field label="Total que te pagarán" hint="Puedes ajustarlo manualmente si hubo bonos o descuentos.">
+                  <input type="number" step="0.01" value={form.charged_amount}
+                    onChange={(e) => set('charged_amount', e.target.value)} />
+                </Field>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="form-card">
+              <h3>Finanzas del evento</h3>
+              <div className="grid-2">
+                <Field label="Pago por tanda (precio al cliente)"
+                  hint={`Al cambiar la tarifa o las tandas se calcula el total (tarifa × ${form.tandas || 0} tandas).`}>
+                  <input type="number" min="0" step="0.01" value={form.rate_per_tanda}
+                    onChange={(e) => setRate(e.target.value)} />
+                </Field>
+                <Field label="Total que se cobró" hint="Puedes ajustarlo manualmente si hubo bonos o descuentos.">
+                  <input type="number" step="0.01" value={form.charged_amount} onChange={(e) => set('charged_amount', e.target.value)} />
+                </Field>
+                <Field label="Anticipo recibido"><input type="number" step="0.01" value={form.advance_amount} onChange={(e) => set('advance_amount', e.target.value)} /></Field>
+                <Field label="Cuenta del depósito">
+                  <select value={form.advance_account_id} onChange={(e) => set('advance_account_id', e.target.value)}>
+                    <option value="">Sin cuenta / efectivo</option>
+                    {(accounts || []).map((a) => <option key={a.id} value={a.id}>{a.name}{a.details ? ` · ${a.details}` : ''}</option>)}
+                  </select>
+                </Field>
+              </div>
+            </div>
+          )}
 
-          <div className="form-card">
+          {!isGuest && <div className="form-card">
             <div className="section-head">
               <h3>Músicos que van</h3>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setForm((f) => ({ ...f, musicians: [...f.musicians, emptyMusician()] }))}>+ Agregar músico</button>
@@ -297,7 +325,7 @@ export default function EventForm() {
                 </div>
               ))}
             </div>
-          </div>
+          </div>}
 
           <div className="form-card">
             <Field label="Notas"><textarea rows="3" value={form.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Detalles, arreglos, quien más va…" /></Field>
