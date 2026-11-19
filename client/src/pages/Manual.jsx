@@ -69,7 +69,7 @@ export default function Manual({ standalone = false }) {
           <Paso>Escribe tu <strong>nombre</strong>, <strong>correo</strong> y <strong>contraseña</strong> (mínimo 6 caracteres) y envía la solicitud.</Paso>
           <Paso>Verás el aviso: <em>«Solicitud enviada. El super administrador debe aprobarla antes de que puedas entrar.»</em> Tu cuenta queda en estatus <Badge tone="amber">Pendiente</Badge>.</Paso>
           <Paso>Mientras esté pendiente no puedes entrar. Si lo intentas, la app te dirá que tu cuenta está pendiente de aprobación. <strong>Eso es normal, no es un error.</strong></Paso>
-          <Paso>El super administrador recibe tu solicitud en <strong>Configuración → Usuarios</strong>. Si el bot de Telegram está activo y tiene su chat vinculado, también recibe un mensaje con los botones <strong>Aprobar / Rechazar</strong>. Puede revisar las solicitudes con el comando <code>/pendientes</code>.</Paso>
+          <Paso>El super administrador recibe tu solicitud en <strong>Configuración → Usuarios</strong>, donde aparece con el estado <Badge tone="amber">Pendiente</Badge> y el botón <strong>«Aceptar usuario»</strong>. Si el bot de Telegram está activo y tiene su chat vinculado, también recibe un mensaje con los botones <strong>Aprobar / Rechazar</strong>. Puede revisar las solicitudes con el comando <code>/pendientes</code>.</Paso>
           <Paso>Cuando apruebe tu solicitud, regresa a la pantalla de entrada y accede con tu correo y contraseña (o con el mismo Gmail).</Paso>
           <Paso>Si te dieron una <strong>contraseña temporal</strong>, cámbiala de inmediato en <strong>Configuración → Cambiar contraseña</strong>.</Paso>
         </Pasos>
@@ -233,7 +233,7 @@ Enviado desde MariachiTotal`}
         <div className="table-wrap"><table>
           <thead><tr><th>Perfil</th><th>Qué ve y puede hacer</th></tr></thead>
           <tbody>
-            <tr><td><Badge tone="purple">Super administrador</Badge></td><td>Ve todos los eventos, cotizaciones, gastos y reportes. Administra usuarios, aprobaciones, bot de Telegram, Google, respaldos y configuración.</td></tr>
+            <tr><td><Badge tone="purple">Super administrador</Badge></td><td>Ve todos los eventos, cotizaciones, gastos y reportes. Administra usuarios: acepta solicitudes, autoriza acceso, cambia contraseñas y genera contraseñas temporales. También configura el bot, Google, respaldos y ajustes globales.</td></tr>
             <tr><td><Badge tone="gray">Usuario</Badge></td><td>Ve y administra únicamente lo que él creó. Los catálogos (clientes, músicos, agrupaciones y cuentas) son compartidos.</td></tr>
           </tbody>
         </table></div>
@@ -265,7 +265,8 @@ Enviado desde MariachiTotal`}
             <tr><td>No puedo entrar con Google</td><td>Usa el mismo correo con el que enviaste la solicitud y que ya fue aprobado.</td></tr>
             <tr><td>No llegan recordatorios</td><td>Verifica que el bot esté activo y que tu chat aparezca como «Telegram vinculado» en Configuración.</td></tr>
             <tr><td>La página se ve sin estilo o con datos viejos</td><td>Actualiza con Ctrl+F5, cierra y vuelve a abrir la app. Si persistes, pide al administrador que limpie la caché.</td></tr>
-            <tr><td>Olvidé mi contraseña</td><td>Pide al super administrador que te cree una cuenta nueva con contraseña temporal, o que te ayude desde Configuración → Usuarios.</td></tr>
+            <tr><td>Olvidé mi contraseña</td><td>Pide al super administrador que use <strong>Configuración → Usuarios → Restablecer</strong>. Generará una contraseña temporal que debe entregarte por un canal seguro; cámbiala en <strong>Configuración → Cambiar contraseña</strong>.</td></tr>
+            <tr><td>Me dicen que autoricen mi suscripción o veo un error 402</td><td>El super administrador debe abrir <strong>Configuración → Usuarios</strong> y tocar <strong>«Autorizar acceso»</strong> en tu fila. Eso activa tu cuenta y tu suscripción.</td></tr>
             <tr><td>No veo un evento creado por otro compañero</td><td>Es normal: los usuarios solo ven lo que ellos crearon. Pide al creador que lo comparta o al administrador que lo revise.</td></tr>
           </tbody>
         </table></div>

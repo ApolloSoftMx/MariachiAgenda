@@ -394,6 +394,9 @@ export function createApp(config = {}) {
     const parsed = schema.safeParse(req.body || {})
     if (!parsed.success) return res.status(400).json({ error: 'Datos inválidos' })
     const d = parsed.data
+    if (id === req.user.id && (d.role === 'user' || d.active === false)) {
+      return res.status(400).json({ error: 'No puedes quitarte el acceso ni bajar tu propio rol' })
+    }
     if (d.role === 'user' && target.role === 'admin') {
       const admins = one("SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND active = 1").n
       if (admins <= 1) return res.status(400).json({ error: 'Debe quedar al menos un super administrador activo' })
@@ -415,6 +418,28 @@ export function createApp(config = {}) {
     if (d.active !== undefined) { fields.push('active = ?'); values.push(d.active ? 1 : 0) }
     if (d.password) { fields.push('password_hash = ?'); values.push(hashPassword(d.password)) }
     if (fields.length) run(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, ...values, id)
+    res.json({ ok: true })
+  })
+
+  app.post('/api/admin/users/:id/reset-password', requireAuth, requireAdmin, (req, res) => {
+    const id = idParam(req)
+    const target = one('SELECT id, name FROM users WHERE id = ?', id)
+    if (!target) return res.status(404).json({ error: 'Usuario no encontrado' })
+    const password = crypto.randomBytes(9).toString('base64url')
+    run('UPDATE users SET password_hash = ? WHERE id = ?', hashPassword(password), id)
+    res.json({ ok: true, password, message: `Contraseña temporal para ${target.name}` })
+  })
+
+  app.post('/api/admin/users/:id/authorize', requireAuth, requireAdmin, (req, res) => {
+    const id = idParam(req)
+    const target = one('SELECT id FROM users WHERE id = ?', id)
+    if (!target) return res.status(404).json({ error: 'Usuario no encontrado' })
+    run('UPDATE users SET active = 1, pending_approval = 0 WHERE id = ?', id)
+    if (one('SELECT user_id FROM subscriptions WHERE user_id = ?', id)) {
+      run("UPDATE subscriptions SET status = 'active', current_period_end = NULL WHERE user_id = ?", id)
+    } else {
+      run("INSERT INTO subscriptions (user_id, status) VALUES (?, 'active')", id)
+    }
     res.json({ ok: true })
   })
 

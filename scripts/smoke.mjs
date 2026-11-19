@@ -403,6 +403,27 @@ try {
 check('registro cerrado bloquea', closedBlocked)
 await call('PATCH', '/admin/config', { allowRegistration: true })
 
+const managed = await call('POST', '/users', {
+  name: 'Gestionable', email: 'gestionable@test.local', password: 'inicial123', role: 'user'
+})
+const reset = await call('POST', `/admin/users/${managed.id}/reset-password`)
+check('admin restablece contraseña', reset.password?.length >= 6)
+cookie = ''
+await call('POST', '/auth/login', { email: 'gestionable@test.local', password: reset.password })
+const managedMe = await call('GET', '/auth/me')
+check('usuario entra con contraseña temporal', managedMe.user?.id === managed.id)
+cookie = adminCookie
+await call('PATCH', `/users/${managed.id}`, { active: false })
+await call('POST', `/admin/users/${managed.id}/authorize`)
+const managedList = await call('GET', '/users')
+const managedRow = managedList.find((u) => u.id === managed.id)
+check('admin autoriza acceso y suscripción', managedRow?.active === 1 && managedRow?.subscription_status === 'active')
+let selfDemote = false
+try {
+  await call('PATCH', `/users/${me.user.id}`, { role: 'user' })
+} catch (err) { selfDemote = String(err.message).includes('No puedes quitarte') }
+check('admin no puede bajarse de rol solo', selfDemote)
+
 const botTexts = await import('../server/bot.js')
 check('ayuda del bot incluye cancelar y opciones', botTexts.optionsText().includes('/cancelar')
   && botTexts.optionsText().includes('/pendientes')

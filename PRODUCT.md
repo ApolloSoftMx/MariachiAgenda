@@ -13,7 +13,7 @@ React PWA (Vite) en `client/`, API Express + SQLite (`node:sqlite`) en `server/`
 ## Users
 
 - **Líderes de grupo y músicos invitados:** usan la agenda para administrar presentaciones. Un mismo usuario puede ser `leader` en sus eventos y `guest` en los de otro encargado.
-- **Super administrador:** aprueba registros, configura bot/Google, respaldos y ajustes globales.
+- **Super administrador:** aprueba o rechaza registros, administra cuentas (rol, estado, contraseña y restablecimiento), autoriza el acceso de usuarios, configura bot/Google, respaldos y ajustes globales.
 - **Usuario final:** agenda, clientes, cotizaciones y finanzas; ve únicamente sus propios registros.
 
 Situación de uso: en escritorio y, sobre todo, en el celular como PWA instalable; comparten cotizaciones por WhatsApp y reciben recordatorios por Telegram.

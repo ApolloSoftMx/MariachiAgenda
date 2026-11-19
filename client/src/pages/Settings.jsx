@@ -71,7 +71,7 @@ function TelegramCard({ config, isAdmin }) {
         {bot && (
           <p className="muted small">
             Desde Telegram puedes escribir <code>/nuevo</code> para agendar un evento paso a paso,
-            o <code>/evento Título | AAAA-MM-DD HH:mm | Lugar | Cliente | Músicos | Cobro</code> para hacerlo rápido.
+            o <code>/evento Título | AAAA-MM-DD HH:mm | Tandas | Lugar | Cliente | Músicos | Cobro</code> para hacerlo rápido.
           </p>
         )}
       </div>
@@ -358,120 +358,194 @@ function UsersCard({ onChanged = () => {} }) {
   const { user: me } = useApp()
   const { data, loading, error } = useLoad(() => api.get('/users'), [])
   const [editing, setEditing] = useState(null)
+  const [passwordTarget, setPasswordTarget] = useState(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [resetResult, setResetResult] = useState(null)
   const [formError, setFormError] = useState('')
 
   if (loading) return <Loading />
   if (error) return <ErrorBox message={error} />
 
-  const pending = (data || []).filter((u) => u.pending_approval)
-  const users = (data || []).filter((u) => !u.pending_approval)
+  const users = data || []
   const admins = users.filter((u) => u.role === 'admin' && u.active).length
+  const statusBadge = (u) => u.pending_approval
+    ? <Badge tone="amber">Pendiente</Badge>
+    : u.active ? <Badge tone="green">Activo</Badge> : <Badge tone="gray">Inactivo</Badge>
+  const needsAuthorization = (u) => !u.pending_approval && (
+    !u.active || (u.role !== 'admin' && !['active', 'trialing'].includes(u.subscription_status))
+  )
 
   async function save(e) {
     e.preventDefault(); setFormError('')
+    const { id, password, ...body } = editing
+    if (password) body.password = password
     try {
-      await api.post('/users', editing)
-      setEditing(null); onChanged(); notify('Usuario creado')
+      if (id) await api.patch('/users/' + id, body)
+      else await api.post('/users', body)
+      setEditing(null); onChanged(); notify(id ? 'Usuario actualizado' : 'Usuario creado')
     } catch (err) { setFormError(err.message) }
   }
 
-  async function approve(user) {
+  function openEdit(u) {
+    setEditing({ id: u.id, name: u.name, email: u.email, phone: u.phone || '', role: u.role, password: '' })
+    setFormError('')
+  }
+
+  async function approve(u) {
     try {
-      await api.post('/admin/registrations/' + user.id + '/approve')
-      onChanged(); notify(`${user.name} ya puede entrar`)
+      await api.post('/admin/registrations/' + u.id + '/approve')
+      onChanged(); notify(`${u.name} ya puede entrar`)
     } catch (err) { notify(err.message) }
   }
 
-  async function reject(user) {
-    confirmAction(`¿Rechazar la solicitud de ${user.name}? Se eliminará la cuenta.`, async () => {
+  async function reject(u) {
+    confirmAction(`¿Rechazar la solicitud de ${u.name}? Se eliminará la cuenta.`, async () => {
       try {
-        await api.post('/admin/registrations/' + user.id + '/reject')
+        await api.post('/admin/registrations/' + u.id + '/reject')
         onChanged(); notify('Solicitud rechazada')
       } catch (err) { notify(err.message) }
     })
   }
 
-  async function toggle(user) {
+  async function authorize(u) {
     try {
-      await api.patch('/users/' + user.id, { active: !user.active })
-      onChanged(); notify(user.active ? 'Usuario desactivado' : 'Usuario activado')
+      await api.post('/admin/users/' + u.id + '/authorize')
+      onChanged(); notify(`Acceso autorizado para ${u.name}`)
     } catch (err) { notify(err.message) }
   }
 
-  async function changeRole(user) {
+  async function toggle(u) {
     try {
-      await api.patch('/users/' + user.id, { role: user.role === 'admin' ? 'user' : 'admin' })
+      await api.patch('/users/' + u.id, { active: !u.active })
+      onChanged(); notify(u.active ? 'Usuario desactivado' : 'Usuario activado')
+    } catch (err) { notify(err.message) }
+  }
+
+  async function changeRole(u) {
+    try {
+      await api.patch('/users/' + u.id, { role: u.role === 'admin' ? 'user' : 'admin' })
       onChanged(); notify('Rol actualizado')
     } catch (err) { notify(err.message) }
   }
 
+  function openPassword(u) {
+    setPasswordTarget(u); setNewPassword(''); setFormError('')
+  }
+
+  async function setPassword(e) {
+    e.preventDefault(); setFormError('')
+    if (newPassword.length < 6) return setFormError('La contraseña debe tener al menos 6 caracteres')
+    try {
+      await api.patch('/users/' + passwordTarget.id, { password: newPassword })
+      setPasswordTarget(null); setNewPassword(''); notify('Contraseña actualizada')
+    } catch (err) { setFormError(err.message) }
+  }
+
+  function resetPassword(u) {
+    confirmAction(`¿Restablecer la contraseña de ${u.name}? Se generará una contraseña temporal.`, async () => {
+      try {
+        const data = await api.post('/admin/users/' + u.id + '/reset-password')
+        setResetResult({ name: u.name, password: data.password })
+      } catch (err) { notify(err.message) }
+    })
+  }
+
   return (
-    <Section title="Usuarios" subtitle="El super administrador aprueba solicitudes y administra las cuentas"
+    <Section title="Usuarios" subtitle="Acepta solicitudes, autoriza el acceso y administra contraseñas"
       actions={<Btn onClick={() => { setEditing({ ...blankUser }); setFormError('') }}>+ Nuevo usuario</Btn>}>
-
-      {pending.length > 0 && (
-        <div className="pending-box">
-          <h3>Solicitudes pendientes ({pending.length})</h3>
-          {pending.map((u) => (
-            <div className="pending-row" key={u.id}>
-              <div>
-                <strong>{u.name}</strong>
-                <div className="muted small">{u.email} · {u.google_linked ? 'Google' : 'Correo'} · {fmtDate(u.created_at)}</div>
-              </div>
-              <div className="row gap">
-                <Btn onClick={() => approve(u)}>Aprobar</Btn>
-                <Btn variant="ghost" onClick={() => reject(u)}>Rechazar</Btn>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
+      <p className="muted small" style={{ marginBottom: 12 }}>
+        <strong>Aceptar usuario</strong> aprueba una solicitud pendiente. <strong>Autorizar acceso</strong> activa la cuenta y su suscripción. Si alguien olvidó su contraseña, usa <strong>Restablecer</strong> para generar una temporal.
+      </p>
       <div className="table-wrap"><table>
-        <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Acceso</th><th>Telegram</th><th>Suscripción</th><th></th></tr></thead>
+        <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Estado</th><th>Ingreso</th><th>Telegram</th><th>Suscripción</th><th>Acciones</th></tr></thead>
         <tbody>
           {users.map((u) => (
             <tr key={u.id}>
-              <td><strong>{u.name}</strong>{u.active ? '' : ' (inactivo)'}</td>
+              <td><strong>{u.name}</strong></td>
               <td>{u.email}</td>
               <td>{u.role === 'admin'
                 ? <Badge tone="purple">Super administrador</Badge>
                 : <Badge tone="gray">Usuario</Badge>}</td>
+              <td>{statusBadge(u)}</td>
               <td>{u.google_linked ? 'Google' : 'Correo'}</td>
               <td>{u.telegram_linked ? 'Vinculado' : '—'}</td>
               <td>{u.subscription_status || '—'}</td>
               <td>
-                <div className="row gap">
-                  {u.id !== me.id && (
-                    <button className="btn btn-ghost btn-sm" onClick={() => toggle(u)}>{u.active ? 'Desactivar' : 'Activar'}</button>
+                <div className="row gap wrap">
+                  {u.pending_approval ? (
+                    <>
+                      <Btn className="btn-sm" onClick={() => approve(u)}>Aceptar usuario</Btn>
+                      <Btn variant="ghost" className="btn-sm" onClick={() => reject(u)}>Rechazar</Btn>
+                    </>
+                  ) : (
+                    <>
+                      {needsAuthorization(u) && <Btn className="btn-sm" onClick={() => authorize(u)}>Autorizar acceso</Btn>}
+                      {u.id !== me.id && (
+                        <button className="btn btn-ghost btn-sm" onClick={() => toggle(u)}>{u.active ? 'Desactivar' : 'Activar'}</button>
+                      )}
+                      {!(u.role === 'admin' && admins <= 1) && u.id !== me.id && (
+                        <button className="btn btn-ghost btn-sm" onClick={() => changeRole(u)}>
+                          {u.role === 'admin' ? 'Hacer usuario' : 'Hacer administrador'}
+                        </button>
+                      )}
+                    </>
                   )}
-                  {!(u.role === 'admin' && admins <= 1) && u.id !== me.id && (
-                    <button className="btn btn-ghost btn-sm" onClick={() => changeRole(u)}>
-                      {u.role === 'admin' ? 'Hacer usuario' : 'Hacer administrador'}
-                    </button>
-                  )}
+                  <button className="btn btn-ghost btn-sm" onClick={() => openEdit(u)}>Editar</button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => openPassword(u)}>Contraseña</button>
+                  {!u.google_linked && <button className="btn btn-ghost btn-sm" onClick={() => resetPassword(u)}>Restablecer</button>}
                 </div>
               </td>
             </tr>
           ))}
         </tbody>
       </table></div>
+
       {editing && (
-        <Modal title="Nuevo usuario" onClose={() => setEditing(null)}>
+        <Modal title={editing.id ? 'Editar usuario' : 'Nuevo usuario'} onClose={() => setEditing(null)}>
           <form className="stack" onSubmit={save}>
             {formError && <ErrorBox message={formError} />}
             <Field label="Nombre"><input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} required /></Field>
             <Field label="Correo"><input type="email" value={editing.email} onChange={(e) => setEditing({ ...editing, email: e.target.value })} required /></Field>
             <Field label="Teléfono"><input value={editing.phone} onChange={(e) => setEditing({ ...editing, phone: e.target.value })} /></Field>
-            <Field label="Contraseña temporal"><input type="password" value={editing.password} onChange={(e) => setEditing({ ...editing, password: e.target.value })} minLength={6} required /></Field>
+            <Field label={editing.id ? 'Nueva contraseña (opcional)' : 'Contraseña temporal'}>
+              <input type="password" value={editing.password} onChange={(e) => setEditing({ ...editing, password: e.target.value })}
+                minLength={6} required={!editing.id} />
+            </Field>
             <Field label="Rol" hint="El super administrador también puede configurar Telegram y respaldos.">
               <select value={editing.role} onChange={(e) => setEditing({ ...editing, role: e.target.value })}>
                 <option value="user">Usuario</option>
                 <option value="admin">Super administrador</option>
               </select>
             </Field>
-            <div className="row gap"><Btn type="submit">Crear</Btn><Btn variant="ghost" onClick={() => setEditing(null)}>Cancelar</Btn></div>
+            <div className="row gap"><Btn type="submit">{editing.id ? 'Guardar' : 'Crear'}</Btn><Btn variant="ghost" onClick={() => setEditing(null)}>Cancelar</Btn></div>
           </form>
+        </Modal>
+      )}
+
+      {passwordTarget && (
+        <Modal title={'Cambiar contraseña de ' + passwordTarget.name} onClose={() => setPasswordTarget(null)}>
+          <form className="stack" onSubmit={setPassword}>
+            {formError && <ErrorBox message={formError} />}
+            <Field label="Nueva contraseña" hint="Mínimo 6 caracteres. Entregársela al usuario por un canal seguro.">
+              <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} minLength={6} required />
+            </Field>
+            <div className="row gap"><Btn type="submit">Actualizar</Btn><Btn variant="ghost" onClick={() => setPasswordTarget(null)}>Cancelar</Btn></div>
+          </form>
+        </Modal>
+      )}
+
+      {resetResult && (
+        <Modal title={'Contraseña temporal de ' + resetResult.name} onClose={() => setResetResult(null)}>
+          <div className="stack">
+            <div className="code-box">
+              <p className="muted small">Aparece solo aquí. Cópiala y entrégasela al usuario por un canal seguro.</p>
+              <code>{resetResult.password}</code>
+              <Btn variant="ghost" onClick={() => copyText(resetResult.password)
+                .then(() => notify('Contraseña copiada'))
+                .catch(() => notify('No se pudo copiar'))}>Copiar</Btn>
+            </div>
+            <p className="muted small">El usuario debe entrar con esta contraseña y cambiarla en <strong>Configuración → Cambiar contraseña</strong>.</p>
+          </div>
         </Modal>
       )}
     </Section>

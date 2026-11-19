@@ -11,8 +11,9 @@ npm install
 npm run dev      # API on :3000 (watch) + Vite on :5173, Vite proxies /api
 npm run build    # PWA -> dist/
 npm start        # serves API + dist/ with SPA fallback on :3000
-npm test         # API smoke test (scripts/smoke.mjs, 56 checks)
+npm test         # API smoke test (scripts/smoke.mjs, 93 checks)
 npm run backup   # creates data/backups/agenda-*.db via VACUUM INTO
+npm run transfer # reassign created_by rows: --from EMAIL --to EMAIL [--promote] [--apply]
 npm run icons    # regenerate public/icons/*.png
 ```
 
@@ -28,7 +29,7 @@ Windows helpers: `iniciar.bat` (install/build/start + open browser) and `respald
 - `server/app.js` — every `/api` route, Zod validation, event/report logic, Google OAuth.
 - `server/db.js` — idempotent schema/migrations, seed (admin + plans), `all/one/run` helpers.
 - `server/auth.js` — scrypt hashes, `agenda_sid` cookie sessions, `requireAuth`/`requireAdmin`, subscription guard.
-- `server/backup.js` — `listBackups`/`createBackup`/`backupPath`/`removeBackup` under `data/backups` (override with `BACKUP_DIR`).
+- `server/backup.js` — `listBackups`/`createBackup`/`backupPath`/`removeBackup` under `data/backups` (override with `BACKUP_DIR`). `scripts/transfer-ownership.mjs` uses `createBackup()` before a `BEGIN IMMEDIATE` transaction to reassign `created_by` rows between users (dry-run unless `--apply`).
 - `server/settings.js` — key/value settings table; screen-saved values take priority over env vars.
 - `server/events.js` — shared event queries/save helper used by the web API and Telegram bot. `server/musicians.js` normalizes phones and reuses catalog rows for public invitations.
 - `server/pdf.js` — dependency-free PDF generator for quotes (Helvetica/WinAnsi).
@@ -47,6 +48,15 @@ Windows helpers: `iniciar.bat` (install/build/start + open browser) and `respald
 - `GET /api/users` exposes `pending_approval`. Admins approve via `POST /api/admin/registrations/:id/approve` (sets active, clears pending) or reject via `.../reject` (deletes the user).
 - New Google accounts follow the same pending flow unless `ALLOW_GOOGLE_SIGNUP=false`. Existing approved Google accounts log in normally.
 - If the bot is running and an admin has linked Telegram, `notifyAdminsAboutRegistration` sends inline **Aprobar/Rechazar** buttons. The bot callback re-checks that the Telegram chat belongs to an active admin. `/pendientes` lists pending requests; with none, it replies with the available commands instead of staying silent.
+
+## User management (Configuración → Usuarios)
+
+- `GET /api/users` is admin-only and returns all rows (pending included), sorted pending first. The UI shows **every** user in one table — the old version hid pending users in a separate box and had no literal «Aceptar usuario» button; that button now calls the approve route.
+- `POST /api/admin/users/:id/reset-password` generates a random base64url password (12 chars) with `hashPassword()` and returns it in the response only. The UI shows it once in a modal with a copy button. Google-only accounts have an unusable random hash, so reset hides that option for them (they can still use the manual «Contraseña» action).
+- `POST /api/admin/users/:id/authorize` sets `active = 1, pending_approval = 0` and upserts `subscriptions` to `status = 'active', current_period_end = NULL`. This is the UI answer to «aceptar suscripción»: there is no billing/plan-change flow. It is shown when the account is inactive or a non-admin has a status outside `active|trialing`.
+- `PATCH /api/users/:id` now accepts `password` from the UI (hash with `hashPassword`) and also edits `name/email/phone/role/active`. Self-demotion and self-deactivation are blocked in the API, not just the UI. The last-active-admin guard still applies.
+- Admin cannot revoke their own session this way; `DELETE /api/users/:id` already had a self-check.
+- `scripts/transfer-ownership.mjs` reassigns `created_by` in `bands`, `clients`, `musicians`, `events`, `event_invites`, `expenses`, `quotes` from one email to another. It never deletes the source user, activates + authorizes the target, optionally promotes it to admin, and creates a backup first. `accounts` has no owner, so it is intentionally untouched.
 
 ## Non-obvious invariants
 

@@ -12,6 +12,7 @@
     "start": "node server/index.js",
     "test": "node scripts/smoke.mjs",
     "backup": "node scripts/backup.mjs",
+    "transfer": "node scripts/transfer-ownership.mjs",
     "icons": "node scripts/gen-icons.js",
     "bot-avatar": "node scripts/gen-bot-avatar.js"
   },

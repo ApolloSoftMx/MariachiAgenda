@@ -28,8 +28,8 @@ export function Field({ label, children, hint, className = '' }) {
   )
 }
 
-export function Btn({ children, variant = 'primary', type = 'button', ...props }) {
-  return <button type={type} className={'btn btn-' + variant} {...props}>{children}</button>
+export function Btn({ children, variant = 'primary', type = 'button', className = '', ...props }) {
+  return <button type={type} className={`btn btn-${variant} ${className}`.trim()} {...props}>{children}</button>
 }
 
 export function Badge({ children, tone = 'gray' }) {

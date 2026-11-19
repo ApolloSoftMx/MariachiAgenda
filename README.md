@@ -13,7 +13,7 @@ Sistema de agenda, clientes y finanzas para un músico de mariachi. Funciona com
 - **Finanzas**: total cobrado, anticipo, cuenta del depósito, pagos a músicos, otros gastos y **utilidad por rango de fechas** (reporte + exportación CSV).
 - **Cotizaciones**: registra propuestas con clientes, **tandas**, hora de fin estimada, músicos, total, vigencia y datos de depósito. Genera **PDF**, **imagen PNG** y un enlace público para el cliente. Al aceptar, crea el evento con las mismas tandas y fin calculado.
 - **Envío por WhatsApp sin API externa**: la app construye el mensaje y el enlace `wa.me/...`; tú eliges cuándo enviarlo. El mensaje incluye el enlace a la cotización y al PDF, o el enlace público de la invitación al evento.
-- **Dos roles de sistema**: **super administrador** (usuarios, Telegram, respaldos) y **usuario final** (agenda, clientes y finanzas). No se confunden con el rol por evento.
+- **Dos roles de sistema**: **super administrador** (usuarios, contraseñas, accesos, Telegram, respaldos) y **usuario final** (agenda, clientes y finanzas). No se confunden con el rol por evento.
 - **Colores en la agenda**: los eventos de tu grupo toman el color de la agrupación; los eventos como invitado usan un color configurable en **Configuración → Color de eventos como invitado** (o `GUEST_EVENT_COLOR` en `.env`).
 - **Tema claro y oscuro**: botón ◐ en la barra superior, en el login y en el manual público; o en **Configuración → Apariencia**. Se guarda por dispositivo y «Sistema» sigue la preferencia del dispositivo.
 - **Acceso con Google** (opcional): los usuarios entran con su cuenta de Gmail sin escribir contraseña.
@@ -48,6 +48,37 @@ El registro está abierto por defecto: en el login aparece **«¿No tienes cuent
 4. Al aprobar, la cuenta se activa y ya puede iniciar sesión. Al rechazar, se elimina la solicitud.
 
 Puedes cerrar el registro en **Configuración → Configuración del sistema** o con `ALLOW_REGISTRATION=false` en `.env`. Aunque el registro esté abierto, nadie entra sin aprobación.
+
+En **Configuración → Usuarios** verás **todas** las cuentas en una sola tabla, con su estado (Pendiente / Activo / Inactivo), rol, ingreso (correo o Google), Telegram y suscripción. Para cada usuario hay acciones:
+
+- **Aceptar usuario**: aprueba una solicitud pendiente (el botón que antes solo existía en Telegram).
+- **Autorizar acceso**: activa una cuenta y deja su suscripción en `active` sin fecha de vencimiento. Úsalo si el usuario está inactivo o ve errores 402 aunque ya esté aprobado.
+- **Editar**: cambia nombre, correo, teléfono, rol y, si quieres, su contraseña.
+- **Contraseña**: pon una contraseña nueva sin pedir la anterior.
+- **Restablecer**: genera una contraseña temporal aleatoria y la muestra **una sola vez** para que se la entregues al usuario por un canal seguro. Él debe cambiarla al entrar.
+- **Desactivar / Activar** y **Hacer usuario / Hacer administrador**. No puedes quitarte tu propio acceso ni bajar tu propio rol, y siempre debe quedar un super administrador activo.
+
+### Traspasar los datos del usuario `owner` a otro usuario
+
+Los eventos, cotizaciones y gastos pertenecen a quien los creó (`created_by`). Músicos, clientes y agrupaciones son catálogos compartidos: ahí `created_by` es solo metadato. Las cuentas bancarias no tienen dueño.
+
+Para pasarle todos los registros a otro usuario (sin tocar la base de producción todavía), primero crea esa cuenta en **Configuración → Usuarios**, con contraseña y rol **Super administrador**. Luego, desde la carpeta del proyecto:
+
+```bash
+# 1) Simulación: muestra cuántos registros se moverían, sin cambiar nada
+npm run transfer -- --from owner@agenda.local --to nuevo@correo.com --promote
+
+# 2) Aplicar: hace respaldo automático y reasigna los registros en una transacción
+npm run transfer -- --from owner@agenda.local --to nuevo@correo.com --promote --apply
+```
+
+Cambia los correos por los reales. `--promote` convierte al destino en super administrador; el script además lo activa y le pone la suscripción en `active`. El usuario de origen conserva su cuenta: no se borra ni se desactiva. Si el servidor está corriendo, deténlo antes de aplicar para asegurarte de que no se escriban datos nuevos durante el traspaso. El script crea un respaldo en `data/backups/` antes de tocar nada.
+
+Windows (si PowerShell bloquea `npm.ps1`):
+
+```powershell
+& 'C:\Program Files\nodejs\npm.cmd' run transfer -- --from owner@agenda.local --to nuevo@correo.com --promote
+```
 
 ## Manual de usuario
 
@@ -280,6 +311,8 @@ Configura `APP_URL=https://agenda.tudominio.com`. Para que arranque solo, instal
 - Cambia la contraseña del super administrador después del primer arranque.
 - El registro está abierto por defecto, pero **toda cuenta nueva queda pendiente** hasta que un super administrador la apruebe. Puedes cerrarlo en la pantalla o con `ALLOW_REGISTRATION=false`.
 - El acceso con Google también crea solicitudes pendientes; si no quieres que exista esa opción, usa `ALLOW_GOOGLE_SIGNUP=false`.
+- Un super administrador puede cambiar la contraseña de cualquier usuario o generar una temporal desde **Configuración → Usuarios**. La contraseña temporal se muestra una sola vez; entrégasela por un canal seguro y pide que la cambie.
+- Nadie puede bajarse su propio rol ni desactivarse a sí mismo desde la pantalla; la API también lo bloquea.
 - Hay límite de intentos de login (10 por 10 minutos por IP/correo).
 - Si expones el sistema, usa siempre HTTPS (Cloudflare Tunnel lo da).
 
@@ -292,7 +325,7 @@ ENABLE_SUBSCRIPTIONS=true
 ```
 
 - El rol `admin` (super administrador) siempre tiene acceso.
-- Los demás necesitan una suscripción `trialing` o `active` vigente.
+- Los demás necesitan una suscripción `trialing` o `active` vigente. Las cuentas nuevas se crean en `trialing`; si una cuenta quedó sin suscripción, vencida o con error 402, el super administrador puede usar **Configuración → Usuarios → Autorizar acceso** para dejarla en `active`.
 - Los endpoints de catálogos, eventos, clientes y reportes quedan protegidos; el flujo de cobro (Stripe/Mercado Pago) aún no está implementado.
 
 ## Scripts
@@ -302,8 +335,9 @@ ENABLE_SUBSCRIPTIONS=true
 | `npm run dev` | API con recarga + Vite en paralelo |
 | `npm run build` | Compila la PWA a `dist/` |
 | `npm start` | Sirve API + PWA compilada |
-| `npm test` | Prueba de humo de la API (67 comprobaciones) |
+| `npm test` | Prueba de humo de la API (93 comprobaciones) |
 | `npm run backup` | Crea un respaldo en `data/backups/` |
+| `npm run transfer` | Traspasa los registros de un usuario a otro (simula; usa `--apply` para aplicar) |
 | `npm run icons` | Regenera los íconos PNG del PWA |
 | `npm run bot-avatar` | Regenera el avatar del bot de Telegram |
 
