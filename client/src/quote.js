@@ -2,6 +2,17 @@
 
 const fmt = (n) => new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(Number(n) || 0)
 
+function quoteEnd(quote) {
+  const n = Math.round(Number(quote.tandas))
+  if (!n || n < 1 || !quote.event_date) return ''
+  const [y, m, d] = quote.event_date.split('-').map(Number)
+  const [h, min] = String(quote.event_time || '19:00').split(':').map(Number)
+  const end = new Date(y, m - 1, d, h, min)
+  end.setHours(end.getHours() + n)
+  const p = (x) => String(x).padStart(2, '0')
+  return `${end.getFullYear()}-${p(end.getMonth() + 1)}-${p(end.getDate())} ${p(end.getHours())}:${p(end.getMinutes())}`
+}
+
 function wrap(ctx, text, maxWidth) {
   const words = String(text || '').split(/\s+/).filter(Boolean)
   const lines = []
@@ -56,6 +67,8 @@ export function downloadQuotePng(quote) {
     ['Cliente', quote.client_name],
     ['Teléfono', quote.client_phone],
     ['Fecha del evento', quote.event_date ? `${quote.event_date} ${quote.event_time || '19:00'}` : ''],
+    ['Tandas', Number(quote.tandas) > 0 ? `${quote.tandas} (${quote.tandas} h)` : ''],
+    ['Fin estimado', quoteEnd(quote)],
     ['Ubicación', place],
     ['Depósito', Number(quote.deposit_amount) > 0 ? fmt(quote.deposit_amount) : ''],
     ['Vigencia', quote.valid_until],

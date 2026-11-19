@@ -12,6 +12,7 @@ import {
 import { listBackups, createBackup, backupPath, removeBackup } from './backup.js'
 import { quotePdf, statusLabel, mapsForQuote } from './pdf.js'
 import { getEvent, listEvents, saveEvent } from './events.js'
+import { quoteEndStamp } from './datetime.js'
 import { setting, getSetting, setSetting, deleteSetting, boolSetting } from './settings.js'
 import { getBot, restartBot, notifyAdminsAboutRegistration } from './bot.js'
 
@@ -24,6 +25,10 @@ const money = z.preprocess(
   z.number().finite()
 )
 const bool = z.preprocess((v) => v === true || v === 1 || v === '1' || v === 'true', z.boolean())
+const tandasSchema = z.preprocess(
+  (v) => (v === '' || v === undefined || v === null ? 0 : Math.round(Number(v))),
+  z.number().int().min(0).max(48)
+)
 
 const zMusician = z.object({
   musician_id: nullableInt.optional().default(null),
@@ -44,6 +49,7 @@ const zEvent = z.object({
   address: z.string().max(300).optional().default(''),
   maps_url: z.string().max(600).optional().default(''),
   status: z.enum(['confirmed', 'pending', 'cancelled']).optional().default('confirmed'),
+  tandas: tandasSchema.optional().default(0),
   musicians_planned: z.preprocess(
     (v) => (v === '' || v === undefined || v === null ? 0 : Number(v)),
     z.number().int().min(0).max(200)
@@ -699,6 +705,7 @@ export function createApp(config = {}) {
     address: z.string().max(300).optional().default(''),
     maps_url: z.string().max(600).optional().default(''),
     description: z.string().optional().default(''),
+    tandas: tandasSchema.optional().default(0),
     musicians_planned: z.preprocess(
       (v) => (v === '' || v === undefined || v === null ? 0 : Number(v)),
       z.number().int().min(0).max(200)
@@ -740,6 +747,7 @@ export function createApp(config = {}) {
       `Hola${quote.client_name ? ` ${quote.client_name.split(' ')[0]}` : ''} 👋`,
       `Te comparto la cotización «${quote.title}».`,
       quote.event_date ? `Fecha del evento: ${quote.event_date}.` : '',
+      quote.tandas > 0 ? `Tandas: ${quote.tandas} (${quote.tandas} hora${quote.tandas === 1 ? '' : 's'}). Termina: ${quoteEndStamp(quote)}.` : '',
       place ? `Lugar: ${place}.` : '',
       maps ? `Ubicación en Maps: ${maps}` : '',
       `Total: $${Number(quote.amount || 0).toFixed(2)}`,
@@ -790,11 +798,11 @@ export function createApp(config = {}) {
     const token = crypto.randomBytes(12).toString('hex')
     const info = run(`INSERT INTO quotes
       (client_id, title, event_date, event_time, location_name, address, maps_url, description,
-       musicians_planned, amount, deposit_amount, valid_until, status, deposit_account_id,
+       tandas, musicians_planned, amount, deposit_amount, valid_until, status, deposit_account_id,
        deposit_details, notes, share_token, created_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       d.client_id, d.title, d.event_date, d.event_time, d.location_name, d.address, d.maps_url,
-      d.description, d.musicians_planned, d.amount, d.deposit_amount, d.valid_until, d.status,
+      d.description, d.tandas, d.musicians_planned, d.amount, d.deposit_amount, d.valid_until, d.status,
       d.deposit_account_id, d.deposit_details, d.notes, token, req.user.id)
     res.status(201).json(getQuote(Number(info.lastInsertRowid)))
   })
@@ -808,7 +816,7 @@ export function createApp(config = {}) {
     const fields = []
     const values = []
     for (const key of ['client_id', 'title', 'event_date', 'event_time', 'location_name',
-      'address', 'maps_url', 'description', 'musicians_planned', 'amount', 'deposit_amount',
+      'address', 'maps_url', 'description', 'tandas', 'musicians_planned', 'amount', 'deposit_amount',
       'valid_until', 'status', 'deposit_account_id', 'deposit_details', 'notes']) {
       if (d[key] !== undefined) { fields.push(`${key} = ?`); values.push(d[key]) }
     }
@@ -903,6 +911,7 @@ export function createApp(config = {}) {
         address: quote.address,
         maps_url: quote.maps_url,
         status: 'confirmed',
+        tandas: quote.tandas,
         musicians_planned: quote.musicians_planned,
         charged_amount: quote.amount,
         advance_amount: quote.deposit_amount,
@@ -1014,6 +1023,8 @@ ${row('Cliente', quote.client_name)}
 ${row('Teléfono', quote.client_phone)}
 ${row('Fecha del evento', quote.event_date)}
 ${row('Hora', quote.event_time || '19:00')}
+${Number(quote.tandas) > 0 ? row('Tandas', `${quote.tandas} (${quote.tandas} hora${quote.tandas === 1 ? '' : 's'})`) : ''}
+${Number(quote.tandas) > 0 ? row('Fin estimado', quoteEndStamp(quote)) : ''}
 ${row('Vigencia', quote.valid_until)}
 ${row('Músicos planeados', quote.musicians_planned)}
 ${Number(quote.deposit_amount) > 0 ? row('Depósito', `$${Number(quote.deposit_amount).toFixed(2)}`) : ''}

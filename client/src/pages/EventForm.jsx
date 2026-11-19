@@ -11,11 +11,21 @@ function defaultStart() {
 }
 
 const blankForm = (date) => ({
-  title: '', starts_at: date ? date + 'T10:00' : defaultStart(), ends_at: '',
+  title: '', starts_at: date ? date + 'T10:00' : defaultStart(), ends_at: '', tandas: 1,
   band_id: '', role: 'leader', client_id: '', location_name: '', address: '', maps_url: '',
   status: 'confirmed', musicians_planned: 0, charged_amount: 0, advance_amount: 0,
   advance_account_id: '', notes: '', musicians: []
 })
+
+const pad = (n) => String(n).padStart(2, '0')
+function endsFromTandas(start, tandas) {
+  const n = Math.round(Number(tandas))
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(start || ''))
+  if (!n || n < 1 || !match) return ''
+  const d = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), Number(match[4]), Number(match[5]))
+  d.setHours(d.getHours() + n)
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 const emptyMusician = () => ({ musician_id: '', name: '', phone: '', payment_amount: 0, paid: false })
 
@@ -41,6 +51,7 @@ export default function EventForm() {
     setForm({
       ...e,
       ends_at: e.ends_at || '',
+      tandas: e.tandas || 0,
       band_id: e.band_id || '',
       client_id: e.client_id || '',
       advance_account_id: e.advance_account_id || '',
@@ -56,6 +67,12 @@ export default function EventForm() {
 
   const [bands, clients, accounts, catalog] = refs.data || [[], [], [], []]
   const set = (key, value) => setForm((f) => ({ ...f, [key]: value }))
+  const setTandas = (value) => setForm((f) => ({
+    ...f, tandas: value, ends_at: endsFromTandas(f.starts_at, value) || f.ends_at
+  }))
+  const setStart = (value) => setForm((f) => ({
+    ...f, starts_at: value, ends_at: endsFromTandas(value, f.tandas) || f.ends_at
+  }))
   const setMusician = (index, key, value) =>
     setForm((f) => ({ ...f, musicians: f.musicians.map((m, i) => i === index ? { ...m, [key]: value } : m) }))
 
@@ -141,9 +158,13 @@ export default function EventForm() {
                 <input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Ej. Boda en San Luis" required />
               </Field>
               <Field label="Fecha y hora de inicio">
-                <input type="datetime-local" value={form.starts_at} onChange={(e) => set('starts_at', e.target.value)} required />
+                <input type="datetime-local" value={form.starts_at} onChange={(e) => setStart(e.target.value)} required />
               </Field>
-              <Field label="Fecha y hora de fin (opcional)">
+              <Field label="Número de tandas (horas)" hint="Cada tanda dura 1 hora. La fecha de fin se calcula sola.">
+                <input type="number" min="1" max="48" step="1" value={form.tandas}
+                  onChange={(e) => setTandas(e.target.value)} />
+              </Field>
+              <Field label="Fecha y hora de fin" hint="Se calcula con las tandas; puedes ajustarla si necesitas.">
                 <input type="datetime-local" value={form.ends_at} onChange={(e) => set('ends_at', e.target.value)} />
               </Field>
               <Field label="Agrupación / encargado">

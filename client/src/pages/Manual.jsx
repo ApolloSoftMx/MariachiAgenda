@@ -86,7 +86,7 @@ export default function Manual({ standalone = false }) {
           <thead><tr><th>Comando</th><th>Qué hace</th></tr></thead>
           <tbody>
             <tr><td><code>/nuevo</code></td><td>Asistente paso a paso para agendar un evento.</td></tr>
-            <tr><td><code>/evento Título | AAAA-MM-DD HH:mm | Lugar | Cliente | Músicos | Cobro</code></td><td>Crea un evento en una sola línea.</td></tr>
+            <tr><td><code>/evento Título | AAAA-MM-DD HH:mm | Tandas | Lugar | Cliente | Músicos | Cobro</code></td><td>Crea un evento en una sola línea. Las tandas son horas.</td></tr>
             <tr><td><code>/pendientes</code></td><td>Solo super administrador: lista solicitudes de acceso y permite aprobar o rechazar.</td></tr>
           </tbody>
         </table></div>
@@ -98,7 +98,8 @@ export default function Manual({ standalone = false }) {
       <Section title="5. Eventos y calendario" id="agenda">
         <Pasos>
           <Paso><strong>Calendario:</strong> los días con eventos se marcan como ocupados y los demás como libres. Toca un día para ver su detalle o <strong>«Agendar este día»</strong>.</Paso>
-          <Paso><strong>Eventos → + Evento:</strong> captura título, fecha y hora, cliente, lugar, estatus (confirmado, pendiente o cancelado), músicos planeados y la lista de músicos con su pago individual.</Paso>
+          <Paso><strong>Eventos → + Evento:</strong> captura título, fecha y hora de inicio, <strong>número de tandas</strong>, cliente, lugar, estatus (confirmado, pendiente o cancelado), músicos planeados y la lista de músicos con su pago individual.</Paso>
+          <Paso><strong>Tandas = horas:</strong> cada tanda dura una hora. Al escribir, por ejemplo, <code>3</code> tandas con inicio a las 19:00, el sistema calcula automáticamente la fecha y hora de fin (22:00). Puedes ajustar el fin manualmente si lo necesitas.</Paso>
           <Paso>Registra el <strong>cobro total</strong> y el <strong>anticipo</strong>. En el detalle del evento puedes ver el total pagado a músicos y tus notas.</Paso>
           <Paso>El rol del evento puede ser <Badge tone="purple">Mi grupo (encargado)</Badge> o <Badge tone="blue">Invitado / otro encargado</Badge>. Un mismo usuario puede ser encargado en unos eventos e invitado en otros.</Paso>
         </Pasos>
@@ -109,10 +110,10 @@ export default function Manual({ standalone = false }) {
         <p>Guarda nombre, teléfono y notas. Con el teléfono se generan los enlaces de WhatsApp y llamada directamente desde la lista.</p>
         <h3>Cotizaciones</h3>
         <Pasos>
-          <Paso><strong>Cotizaciones → + Nueva cotización:</strong> llena título, cliente, fecha, hora, lugar, dirección (o enlace de Google Maps), músicos planeados, total, depósito, vigencia y cuenta para depósito.</Paso>
+          <Paso><strong>Cotizaciones → + Nueva cotización:</strong> llena título, cliente, fecha, hora de inicio, <strong>tandas</strong>, lugar, dirección (o enlace de Google Maps), músicos planeados, total, depósito, vigencia y cuenta para depósito. El campo <strong>Fin estimado</strong> se calcula solo al sumar las tandas a la hora de inicio.</Paso>
           <Paso>Si el cliente aún no existe, elige <strong>«➕ Crear nuevo cliente…»</strong>: capturas nombre, teléfono y notas, y al guardar se da de alta en Clientes y queda ligado a la cotización.</Paso>
           <Paso>Con <strong>«Enviar»</strong> obtienes un mensaje listo para WhatsApp, el PDF, una imagen PNG y un enlace público para el cliente. WhatsApp no adjunta archivos desde un enlace <code>wa.me</code>: el PDF y la imagen se comparten por enlace o se descargan.</Paso>
-          <Paso>En la página pública del cliente puede subir su <strong>comprobante de depósito</strong> (PNG, JPG, WebP o PDF, hasta 10 MB). Al aceptarlo, la cotización pasa a <Badge tone="green">Aceptada</Badge> y se crea un evento confirmado usando la fecha, la hora y el depósito como anticipo.</Paso>
+          <Paso>En la página pública del cliente puede subir su <strong>comprobante de depósito</strong> (PNG, JPG, WebP o PDF, hasta 10 MB). Al aceptarlo, la cotización pasa a <Badge tone="green">Aceptada</Badge> y se crea un evento confirmado usando la fecha, la hora, las tandas (con su fin calculado) y el depósito como anticipo.</Paso>
         </Pasos>
       </Section>
 

@@ -49,6 +49,7 @@ Windows helpers: `iniciar.bat` (install/build/start + open browser) and `respald
 ## Non-obvious invariants
 
 - Dates are stored as **local** strings `YYYY-MM-DDTHH:mm`, compared lexicographically. Do not use `toISOString().slice(...)` for local filters/report defaults — it shifts the date in non-UTC zones. Use `localDate`/`nowStamp` helpers.
+- `tandas` (hours, 1–48) exist on both `events` and `quotes`. Each tanda = 1 hour; `saveEvent()` computes `ends_at = starts_at + tandas` (local time) via `server/datetime.js`, and quote share/PDF/PNG show `Fin estimado`. When a quote is accepted, its `tandas` carry into the created event. Forms also compute the end client-side for immediate feedback.
 - `events.musicians_planned` is a manual headcount independent of the listed `event_musicians` rows; payments and paid totals come only from those rows.
 - `PATCH /api/events/:id` replaces the **entire** `musicians` array (send the full list) and re-inserts rows in a transaction.
 - Report profit = `charged − paid-to-musicians (paid=1) − expenses`, excluding `cancelled` events. Advance is not subtracted again.

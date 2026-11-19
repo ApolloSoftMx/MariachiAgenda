@@ -1,6 +1,8 @@
 // Generador mínimo de PDF (sin dependencias). Solo texto con Helvetica/WinAnsi.
 // Suficiente para cotizaciones en español con acentos.
 
+import { quoteEndStamp } from './datetime.js'
+
 const clean = (value) => String(value ?? '')
   .replace(/[^\x20-\x7E\xA1-\xFF]/g, '?')
   .replace(/\\/g, '\\\\')
@@ -40,12 +42,18 @@ export function buildQuoteLines(quote) {
   lines.push([`Cliente: ${quote.client_name || '—'}`, 12, 738])
   if (quote.client_phone) lines.push([`Teléfono: ${quote.client_phone}`, 11, 720])
   lines.push([`Fecha del evento: ${quote.event_date || 'Por definir'} ${quote.event_time || '19:00'}`, 11, 702])
-  if (quote.valid_until) lines.push([`Vigencia: ${quote.valid_until}`, 11, 684])
-  lines.push([`Músicos planeados: ${quote.musicians_planned || 0}`, 11, 666])
-  lines.push([`Total: ${moneyText(quote.amount)}`, 14, 642])
-  if (Number(quote.deposit_amount) > 0) lines.push([`Depósito a registrar: ${moneyText(quote.deposit_amount)}`, 11, 624])
+  let metaY = 684
+  if (Number(quote.tandas) > 0) {
+    lines.push([`Tandas: ${quote.tandas} (${quote.tandas} h) · Fin estimado: ${quoteEndStamp(quote)}`, 11, metaY])
+    metaY -= 18
+  }
+  if (quote.valid_until) { lines.push([`Vigencia: ${quote.valid_until}`, 11, metaY]); metaY -= 18 }
+  lines.push([`Músicos planeados: ${quote.musicians_planned || 0}`, 11, metaY])
+  lines.push([`Total: ${moneyText(quote.amount)}`, 14, metaY - 24])
+  const hasDeposit = Number(quote.deposit_amount) > 0
+  if (hasDeposit) lines.push([`Depósito a registrar: ${moneyText(quote.deposit_amount)}`, 11, metaY - 42])
 
-  let y = Number(quote.deposit_amount) > 0 ? 598 : 612
+  let y = hasDeposit ? metaY - 66 : metaY - 48
   const place = [quote.location_name, quote.address].filter(Boolean).join(' — ')
   if (place) {
     lines.push(['Ubicación', 12, y]); y -= 18

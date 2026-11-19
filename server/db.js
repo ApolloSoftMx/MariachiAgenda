@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS events (
   address TEXT,
   maps_url TEXT,
   status TEXT NOT NULL DEFAULT 'confirmed',
+  tandas INTEGER NOT NULL DEFAULT 0,
   musicians_planned INTEGER NOT NULL DEFAULT 0,
   charged_amount REAL NOT NULL DEFAULT 0,
   advance_amount REAL NOT NULL DEFAULT 0,
@@ -161,6 +162,7 @@ CREATE TABLE IF NOT EXISTS quotes (
   address TEXT NOT NULL DEFAULT '',
   maps_url TEXT NOT NULL DEFAULT '',
   description TEXT NOT NULL DEFAULT '',
+  tandas INTEGER NOT NULL DEFAULT 0,
   musicians_planned INTEGER NOT NULL DEFAULT 0,
   amount REAL NOT NULL DEFAULT 0,
   deposit_amount REAL NOT NULL DEFAULT 0,
@@ -187,6 +189,9 @@ const eventColumns = db.prepare('PRAGMA table_info(events)').all().map((c) => c.
 if (!eventColumns.includes('musicians_planned')) {
   db.exec('ALTER TABLE events ADD COLUMN musicians_planned INTEGER NOT NULL DEFAULT 0')
 }
+if (!eventColumns.includes('tandas')) {
+  db.exec('ALTER TABLE events ADD COLUMN tandas INTEGER NOT NULL DEFAULT 0')
+}
 
 const userColumns = db.prepare('PRAGMA table_info(users)').all().map((c) => c.name)
 if (!userColumns.includes('google_id')) db.exec('ALTER TABLE users ADD COLUMN google_id TEXT')
@@ -204,6 +209,9 @@ for (const column of ['location_name', 'address', 'maps_url', 'event_time', 'rec
   if (column === 'event_time') {
     db.exec("UPDATE quotes SET event_time = '19:00' WHERE event_time = '' OR event_time IS NULL")
   }
+}
+if (!quoteColumns.includes('tandas')) {
+  db.exec('ALTER TABLE quotes ADD COLUMN tandas INTEGER NOT NULL DEFAULT 0')
 }
 if (!quoteColumns.includes('deposit_amount')) {
   db.exec('ALTER TABLE quotes ADD COLUMN deposit_amount REAL NOT NULL DEFAULT 0')

@@ -4,10 +4,21 @@ import { Loading, ErrorBox, Section, Field, Btn, Modal, Badge, confirmAction, us
 import { copyText, downloadQuotePng } from '../quote.js'
 
 const blank = {
-  title: '', client_id: '', event_date: '', event_time: '19:00', location_name: '',
+  title: '', client_id: '', event_date: '', event_time: '19:00', tandas: 1, location_name: '',
   address: '', maps_url: '', description: '', musicians_planned: 0,
   amount: 0, deposit_amount: 0, valid_until: '', status: 'draft',
   deposit_account_id: '', deposit_details: '', notes: ''
+}
+
+function quoteEnd(quote) {
+  const n = Math.round(Number(quote?.tandas))
+  if (!n || n < 1 || !quote?.event_date) return ''
+  const [y, m, d] = quote.event_date.split('-').map(Number)
+  const [h, min] = String(quote.event_time || '19:00').split(':').map(Number)
+  const end = new Date(y, m - 1, d, h, min)
+  end.setHours(end.getHours() + n)
+  const p = (x) => String(x).padStart(2, '0')
+  return `${end.getFullYear()}-${p(end.getMonth() + 1)}-${p(end.getDate())} ${p(end.getHours())}:${p(end.getMinutes())}`
 }
 
 const NEW_CLIENT = '__new__'
@@ -159,13 +170,14 @@ export default function Quotes() {
 
         {quotes.length === 0 ? <div className="empty">Aún no hay cotizaciones. Crea la primera con el botón de arriba.</div> : (
           <div className="table-wrap"><table>
-            <thead><tr><th>Cotización</th><th>Cliente</th><th>Fecha</th><th>Total</th><th>Estatus</th><th></th></tr></thead>
+            <thead><tr><th>Cotización</th><th>Cliente</th><th>Fecha</th><th>Tandas</th><th>Total</th><th>Estatus</th><th></th></tr></thead>
             <tbody>
               {quotes.map((q) => (
                 <tr key={q.id}>
                   <td><strong>{q.title}</strong></td>
                   <td>{q.client_name || '—'}</td>
                   <td>{q.event_date ? dateShort(q.event_date) : '—'}</td>
+                  <td>{Number(q.tandas) > 0 ? `${q.tandas} h` : '—'}</td>
                   <td><strong>{money(q.amount)}</strong></td>
                   <td>{statusBadge(q.status)}</td>
                   <td>
@@ -225,9 +237,16 @@ export default function Quotes() {
               <Field label="Fecha del evento">
                 <input type="date" value={editing.event_date || ''} onChange={(e) => setEditing({ ...editing, event_date: e.target.value })} />
               </Field>
-              <Field label="Hora" hint="Se usará para agendar el evento cuando el cliente acepte.">
+              <Field label="Hora de inicio" hint="Se usará para agendar el evento cuando el cliente acepte.">
                 <input type="time" value={editing.event_time || '19:00'}
                   onChange={(e) => setEditing({ ...editing, event_time: e.target.value })} />
+              </Field>
+              <Field label="Número de tandas (horas)" hint="Cada tanda dura 1 hora. Se calcula la hora de término.">
+                <input type="number" min="1" max="48" step="1" value={editing.tandas ?? 1}
+                  onChange={(e) => setEditing({ ...editing, tandas: e.target.value })} />
+              </Field>
+              <Field label="Fin estimado" hint={quoteEnd(editing) ? 'Inicio + tandas.' : 'Captura fecha, hora y tandas para verlo.'}>
+                <input value={quoteEnd(editing)} readOnly placeholder="—" />
               </Field>
               <Field label="Lugar">
                 <input value={editing.location_name || ''} placeholder="Ej. Salón El Rancho"

@@ -91,7 +91,7 @@ const musician = await call('POST', '/musicians', { name: 'Luis', phone: '559999
 check('catálogos creados', band.id && guestBand.id && client.id && account.id && musician.id)
 
 const event = await call('POST', '/events', {
-  title: 'Boda Ana', starts_at: '2026-12-12T19:00', ends_at: '2026-12-13T01:00',
+  title: 'Boda Ana', starts_at: '2026-12-12T19:00', tandas: 6,
   band_id: band.id, client_id: client.id, location_name: 'Salón El Rancho',
   address: 'Av. Juárez 123, CDMX', status: 'confirmed',
   charged_amount: 12000, advance_amount: 5000, advance_account_id: account.id,
@@ -103,6 +103,7 @@ const event = await call('POST', '/events', {
 })
 check('evento creado con músicos', event.id && event.musician_count === 2 && event.musician_total === 1300)
 check('número de músicos planeado', event.musicians_planned === 6)
+check('tandas guardadas y fin calculado', event.tandas === 6 && event.ends_at === '2026-12-13T01:00')
 check('rol derivado de agrupación', event.role === 'leader')
 
 const guestEvent = await call('POST', '/events', {
@@ -138,13 +139,14 @@ check('utilidad descuenta gasto', report2.totals.profit === 13800)
 const quote = await call('POST', '/quotes', {
   client_id: client.id, title: 'Boda Ana · propuesta', event_date: '2026-12-12', event_time: '19:00',
   location_name: 'Salón El Rancho', address: 'Av. Principal 123',
-  description: 'Mariachi para ceremonia y banquete', musicians_planned: 6,
+  description: 'Mariachi para ceremonia y banquete', tandas: 3, musicians_planned: 6,
   amount: 12000, deposit_amount: 500, valid_until: '2026-11-30', status: 'draft',
   deposit_account_id: account.id, deposit_details: 'Referencia BODA-ANA'
 })
 check('cotización creada', quote.id && quote.share_token && quote.client_name === 'Ana López')
 check('cotización con ubicación', quote.location_name === 'Salón El Rancho' && quote.address === 'Av. Principal 123')
 check('cotización con hora y depósito', quote.event_time === '19:00' && quote.deposit_amount === 500)
+check('cotización con tandas', quote.tandas === 3)
 
 const pdfRes = await fetch(base + `/quotes/${quote.id}/pdf`, { headers: { Cookie: cookie } })
 const pdfBytes = Buffer.from(await pdfRes.arrayBuffer())
@@ -163,6 +165,7 @@ check('PDF público', publicPdf.ok && publicPdfBytes.subarray(0, 4).toString() =
 const share = await call('GET', `/quotes/${quote.id}/share`)
 check('compartir construye wa.me', share.whatsappUrl?.startsWith('https://wa.me/525512345678?text='))
 check('mensaje incluye depósito', share.message.includes('BBVA') && share.message.includes('BODA-ANA'))
+check('mensaje incluye tandas y fin', share.message.includes('Tandas: 3') && share.message.includes('2026-12-12T22:00'))
 check('mensaje incluye ubicación', share.mapsUrl?.includes('google.com/maps') && share.message.includes('Ubicación en Maps'))
 await call('PATCH', `/quotes/${quote.id}`, { status: 'sent' })
 const quotesByClient = await call('GET', `/quotes?client_id=${client.id}`)
@@ -186,7 +189,8 @@ check('cotización queda aceptada', acceptedQuote.status === 'accepted'
 const scheduled = await call('GET', `/events/${accepted.eventId}`)
 check('evento agendado desde cotización', scheduled.title === quote.title
   && scheduled.starts_at === '2026-12-12T19:00' && scheduled.client_id === client.id
-  && scheduled.advance_amount === 500 && scheduled.charged_amount === 12000)
+  && scheduled.advance_amount === 500 && scheduled.charged_amount === 12000
+  && scheduled.tandas === 3 && scheduled.ends_at === '2026-12-12T22:00')
 const receiptRes = await fetch(`${root}/q/${quote.share_token}/receipt`)
 const receiptBytes = Buffer.from(await receiptRes.arrayBuffer())
 check('comprobante se puede descargar', receiptRes.ok && receiptBytes.equals(png))

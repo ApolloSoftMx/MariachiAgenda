@@ -118,6 +118,7 @@ function saveEventFromSource(event, userId, source) {
 const DRAFT_STEPS = [
   { key: 'title', prompt: '¿Cómo se llama el evento?' },
   { key: 'starts_at', prompt: '¿Cuándo es? Escribe la fecha y hora así: `2026-12-12 19:00`' },
+  { key: 'tandas', prompt: '¿Cuántas tandas (horas) son? Escribe un número, por ejemplo `3`.' },
   { key: 'location_name', prompt: '¿Dónde es? Escribe `-` si aún no lo sabes.' },
   { key: 'clientName', prompt: '¿Quién es el cliente? Escribe `-` si no aplica.' },
   { key: 'musicians_planned', prompt: '¿Cuántos músicos planeas? Escribe `0` si aún no lo sabes.' },
@@ -129,6 +130,7 @@ function draftSummary(d) {
     '📝 Revisa el evento:',
     `🎺 ${d.title}`,
     `🗓️ ${prettyDate(d.starts_at)}`,
+    d.tandas ? `⏱️ Tandas: ${d.tandas}` : '',
     d.location_name ? `📍 ${d.location_name}` : '',
     d.clientName ? `👤 ${d.clientName}` : '',
     `🎼 Músicos: ${d.musicians_planned}`,
@@ -259,25 +261,27 @@ export function startBot(config = {}) {
     if (!user) return ctx.reply('Primero vincula tu cuenta desde la web: Configuración → Vincular Telegram.')
     const raw = String(ctx.match || '').trim()
     if (!raw) {
-      return ctx.reply('Uso rápido:\n`/evento Boda Ana | 2026-12-12 19:00 | Salón El Rancho | Ana López | 6 | 12000`\n\nO escribe /nuevo para que te guíe paso a paso.')
+      return ctx.reply('Uso rápido:\n`/evento Boda Ana | 2026-12-12 19:00 | 3 | Salón El Rancho | Ana López | 6 | 12000`\n\nEl tercer dato son las tandas (horas). O escribe /nuevo para que te guíe paso a paso.')
     }
     const parts = raw.split('|').map((p) => p.trim())
     const startsAt = parseStamp(parts[1])
     if (!parts[0] || !startsAt) {
-      return ctx.reply('No entendí el evento. Usa: `/evento Título | AAAA-MM-DD HH:mm | Lugar | Cliente | Músicos | Cobro`')
+      return ctx.reply('No entendí el evento. Usa: `/evento Título | AAAA-MM-DD HH:mm | Tandas | Lugar | Cliente | Músicos | Cobro`')
     }
-    const musicians = parseNumber(parts[4])
-    const amount = parseNumber(parts[5])
-    if (musicians === null || amount === null) return ctx.reply('El número de músicos y el cobro deben ser cantidades válidas.')
+    const tandas = parseNumber(parts[2])
+    const musicians = parseNumber(parts[5])
+    const amount = parseNumber(parts[6])
+    if (tandas === null || musicians === null || amount === null) return ctx.reply('Las tandas, el número de músicos y el cobro deben ser cantidades válidas.')
     try {
       const event = saveEventFromSource({
         title: parts[0],
         starts_at: startsAt,
         ends_at: null,
-        location_name: parts[2] === '-' ? '' : (parts[2] || ''),
+        tandas,
+        location_name: parts[3] === '-' ? '' : (parts[3] || ''),
         address: '',
         maps_url: '',
-        client_id: findOrCreateClient(parts[3], user.id),
+        client_id: findOrCreateClient(parts[4], user.id),
         musicians_planned: musicians,
         charged_amount: amount,
         advance_amount: 0,
@@ -302,7 +306,7 @@ export function startBot(config = {}) {
       const stamp = parseStamp(text)
       if (!stamp) return ctx.reply('Usa este formato: `2026-12-12 19:00` (año-mes-día hora:minuto).')
       draft[step.key] = stamp
-    } else if (step.key === 'musicians_planned' || step.key === 'charged_amount') {
+    } else if (step.key === 'tandas' || step.key === 'musicians_planned' || step.key === 'charged_amount') {
       const n = parseNumber(text)
       if (n === null) return ctx.reply('Escribe solo un número, por ejemplo `6` o `12000`.')
       draft[step.key] = n
@@ -354,6 +358,7 @@ export function startBot(config = {}) {
           title: draft.title,
           starts_at: draft.starts_at,
           ends_at: null,
+          tandas: Number(draft.tandas) || 0,
           location_name: draft.location_name,
           address: '',
           maps_url: '',

@@ -1,4 +1,5 @@
 import { all, one, run, db } from './db.js'
+import { addHoursToStamp, normalizeTandas } from './datetime.js'
 
 export const EVENT_SELECT = `
   SELECT e.*, c.name AS client_name, c.phone AS client_phone,
@@ -31,10 +32,12 @@ export function listEvents({ from, to, status, band_id, limit, viewer } = {}) {
 export function saveEvent(data, id = null, createdBy = null, options = {}) {
   const band = data.band_id ? one('SELECT kind FROM bands WHERE id = ?', data.band_id) : null
   const role = band ? (band.kind === 'guest' ? 'guest' : 'leader') : (data.role || 'leader')
+  const tandas = normalizeTandas(data.tandas)
   const columns = {
     title: data.title,
     starts_at: data.starts_at,
-    ends_at: data.ends_at ?? null,
+    ends_at: tandas > 0 ? addHoursToStamp(data.starts_at, tandas) : (data.ends_at ?? null),
+    tandas,
     band_id: data.band_id ?? null,
     role,
     client_id: data.client_id ?? null,
