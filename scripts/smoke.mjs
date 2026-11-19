@@ -137,6 +137,47 @@ await call('PATCH', '/events/' + event.id, { advance_amount: 6000, musicians: [
 const updated = await call('GET', '/events/' + event.id)
 check('actualización de evento', updated.advance_amount === 6000 && updated.musicians.length === 1)
 
+// Un músico escrito a mano en el evento debe quedar disponible en el catálogo.
+const catalogBefore = await call('GET', '/musicians')
+const withNewMusician = await call('POST', '/events', {
+  title: 'Evento con músico nuevo', starts_at: '2027-02-05T19:00', tandas: 2,
+  musicians: [{ name: 'Marta Nueva', phone: '5511112222', payment_per_tanda: 300 }]
+})
+const newMusicianDetail = await call('GET', '/events/' + withNewMusician.id)
+const catalogAfter = await call('GET', '/musicians')
+const marta = catalogAfter.find((m) => m.name === 'Marta Nueva')
+check('músico nuevo se guarda en el catálogo', !!marta
+  && newMusicianDetail.musicians[0].musician_id === marta.id
+  && catalogAfter.length === catalogBefore.length + 1)
+check('catálogo hereda pago del músico nuevo', marta?.default_payment === 600
+  && newMusicianDetail.musicians[0].payment_amount === 600)
+
+const reuse = await call('POST', '/events', {
+  title: 'Marta otra vez', starts_at: '2027-02-06T19:00',
+  musicians: [{ name: ' marta nueva ', payment_amount: 400 }]
+})
+const reuseDetail = await call('GET', '/events/' + reuse.id)
+check('músico existente se reutiliza sin duplicar', reuseDetail.musicians[0].musician_id === marta.id
+  && (await call('GET', '/musicians')).length === catalogAfter.length)
+
+await call('PATCH', '/events/' + reuse.id, {
+  musicians: [{ name: 'Nuevo en edición', payment_amount: 100 }]
+})
+const editedDetail = await call('GET', '/events/' + reuse.id)
+const editedMusician = (await call('GET', '/musicians')).find((m) => m.name === 'Nuevo en edición')
+check('músico nuevo también se guarda al editar', !!editedMusician
+  && editedDetail.musicians[0].musician_id === editedMusician.id
+  && editedMusician.created_by === (await call('GET', '/auth/me')).user.id)
+
+const noCatalog = await call('POST', '/events', {
+  title: 'Evento sin alta al catálogo', starts_at: '2027-02-07T19:00',
+  catalog_new_musicians: false,
+  musicians: [{ name: 'Solo este evento', payment_amount: 200 }]
+})
+const noCatalogDetail = await call('GET', '/events/' + noCatalog.id)
+check('se puede desactivar el alta automática', noCatalogDetail.musicians[0].musician_id === null
+  && !(await call('GET', '/musicians')).some((m) => m.name === 'Solo este evento'))
+
 const report = await call('GET', '/reports?from=2026-12-01&to=2026-12-31')
 check('reporte cobrado', report.totals.charged === 15000)
 check('reporte pagado a músicos', report.totals.paidToMusicians === 900)

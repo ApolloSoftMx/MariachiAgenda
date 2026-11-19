@@ -39,6 +39,7 @@ Cada tanda equivale a una hora y el pago se captura por tanda (del evento y de c
 - UI y errores de API **siempre en español**.
 - Fechas se guardan como cadenas locales `YYYY-MM-DDTHH:mm`; nunca usar UTC para filtros.
 - Los datos de usuario (eventos, cotizaciones, gastos, reportes) se filtran por `created_by`; los catálogos son compartidos.
+- Un músico capturado por nombre dentro del evento se da de alta automáticamente en el catálogo compartido, reutilizando nombres existentes para no duplicarlo; el formulario permite desactivar esta opción.
 - Eventos ordenados por fecha; calendario muestra días libres y ocupados con colores por agrupación (color propio para eventos como invitado, configurable).
 - `dist/` es gitignored: hay que correr `npm run build` antes de servir.
 - **Tema visual (decidido 2026-11-19):** modo claro/oscuro, controlado por preferencia del usuario guardada localmente, con respeto a la preferencia del sistema operativo como valor inicial.

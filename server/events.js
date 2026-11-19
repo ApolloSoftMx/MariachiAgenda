@@ -35,6 +35,22 @@ export const EVENT_SELECT = `
 
 export const getEvent = (id) => withColors([one(EVENT_SELECT + ' WHERE e.id = ?', id)])[0]
 
+// Un músico capturado por nombre en el evento también entra al catálogo compartido.
+// La búsqueda por nombre (sin importar mayúsculas) evita duplicados, incluso si el
+// mismo nombre aparece varias veces en el mismo evento: la fila insertada ya es
+// visible para la siguiente consulta dentro de la transacción de saveEvent().
+function catalogIdForNewMusician(name, phone, defaultPayment, createdBy) {
+  const clean = String(name || '').trim().replace(/\s+/g, ' ')
+  if (!clean) return null
+  const found = one('SELECT id FROM musicians WHERE TRIM(name) COLLATE NOCASE = ? ORDER BY id LIMIT 1', clean)
+  if (found) return Number(found.id)
+  const info = run(
+    'INSERT INTO musicians (name, phone, default_payment, active, created_by) VALUES (?, ?, ?, 1, ?)',
+    clean, String(phone || '').trim(), Number(defaultPayment) || 0, createdBy
+  )
+  return Number(info.lastInsertRowid)
+}
+
 export function listEvents({ from, to, status, band_id, limit, viewer } = {}) {
   const where = []
   const params = []
@@ -74,6 +90,7 @@ export function saveEvent(data, id = null, createdBy = null, options = {}) {
     notes: data.notes ?? ''
   }
   const musicians = Array.isArray(data.musicians) ? data.musicians : []
+  const catalogNew = data.catalog_new_musicians !== false
   const manageTransaction = options.transaction !== false
   if (manageTransaction) db.exec('BEGIN')
   try {
@@ -93,9 +110,13 @@ export function saveEvent(data, id = null, createdBy = null, options = {}) {
       const hasPayment = m.payment_amount !== undefined && m.payment_amount !== null && m.payment_amount !== ''
       const payment = hasPayment ? (Number(m.payment_amount) || 0)
         : (rate > 0 && tandas > 0 ? rate * tandas : 0)
+      let musicianId = m.musician_id ?? null
+      if (!musicianId && catalogNew && String(m.name || '').trim()) {
+        musicianId = catalogIdForNewMusician(m.name, m.phone, payment > 0 ? payment : rate, createdBy)
+      }
       run(`INSERT INTO event_musicians (event_id, musician_id, name, phone, payment_per_tanda, payment_amount, paid)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        id, m.musician_id ?? null, String(m.name || '').trim(),
+        id, musicianId, String(m.name || '').trim(),
         m.phone || '', rate, payment, m.paid ? 1 : 0)
     }
     if (manageTransaction) db.exec('COMMIT')

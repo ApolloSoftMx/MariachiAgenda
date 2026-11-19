@@ -60,6 +60,7 @@ const zEvent = z.object({
   advance_amount: money.optional().default(0),
   advance_account_id: nullableInt.optional().default(null),
   notes: z.string().optional().default(''),
+  catalog_new_musicians: bool.optional().default(true),
   musicians: z.array(zMusician).max(200, 'Máximo 200 músicos por evento').optional().default([])
 })
 
@@ -1150,7 +1151,7 @@ ${acceptBlock}
     const parsed = zEvent.safeParse(merged)
     if (!parsed.success) return res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() })
     try {
-      res.json(saveEvent(parsed.data, existing.id))
+      res.json(saveEvent(parsed.data, existing.id, req.user.id))
     } catch (err) {
       console.error('[event update]', err)
       res.status(500).json({ error: 'No se pudo actualizar el evento' })

@@ -14,7 +14,7 @@ const blankForm = (date) => ({
   title: '', starts_at: date ? date + 'T10:00' : defaultStart(), ends_at: '', tandas: 1, rate_per_tanda: 0,
   band_id: '', role: 'leader', client_id: '', location_name: '', address: '', maps_url: '',
   status: 'confirmed', musicians_planned: 0, charged_amount: 0, advance_amount: 0,
-  advance_account_id: '', notes: '', musicians: []
+  advance_account_id: '', notes: '', catalog_new_musicians: true, musicians: []
 })
 
 const pad = (n) => String(n).padStart(2, '0')
@@ -62,6 +62,7 @@ export default function EventForm() {
       band_id: e.band_id || '',
       client_id: e.client_id || '',
       advance_account_id: e.advance_account_id || '',
+      catalog_new_musicians: true,
       musicians: (e.musicians || []).map((m) => ({
         musician_id: m.musician_id || '', name: m.name, phone: m.phone || '',
         payment_per_tanda: m.payment_per_tanda || 0,
@@ -307,6 +308,11 @@ export default function EventForm() {
                   onChange={(e) => set('musicians_planned', e.target.value)} />
               </Field>
             </div>
+            <label className="check">
+              <input type="checkbox" checked={form.catalog_new_musicians !== false}
+                onChange={(e) => set('catalog_new_musicians', e.target.checked)} />
+              Guardar los músicos nuevos en el catálogo para poder seleccionarlos en otros eventos
+            </label>
             {form.musicians.length === 0 && <p className="muted small">Opcional: agrega nombres, teléfonos, pago por tanda y lo que se les pagará a cada uno.</p>}
             <div className="stack">
               {form.musicians.map((m, i) => (
