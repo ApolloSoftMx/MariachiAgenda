@@ -179,7 +179,7 @@ check('se puede desactivar el alta automática', noCatalogDetail.musicians[0].mu
   && !(await call('GET', '/musicians')).some((m) => m.name === 'Solo este evento'))
 
 // La invitación pública no incluye nombres de músicos ni importes en el mensaje.
-const { buildEventMessage, buildInviteMessage, buildConfirmationMessage, waLink, waNumber } =
+const { buildEventMessage, buildInviteMessage, buildMusicianMessage, buildConfirmationMessage, waLink, waNumber } =
   await import('../client/src/eventShare.js')
 const shareEvent = {
   title: 'Boda Ana', starts_at: '2026-12-12T19:00', ends_at: '2026-12-13T01:00', tandas: 6,
@@ -205,6 +205,15 @@ check('mensaje individual confirma con emojis y solo el pago del músico',
   && confirmationText.includes('📅 Fecha:') && confirmationText.includes('💰 Tu pago:')
   && confirmationText.includes('$1,200.00') && confirmationText.includes('✅ Asistencia confirmada')
   && !confirmationText.includes('Marta') && !confirmationText.includes('👉 Confirma'))
+const musicianText = buildMusicianMessage(shareEvent, {
+  name: 'Luis Pérez', phone: '5512345678', payment_per_tanda: 200, payment_amount: 1200, paid: true
+})
+check('mensaje por músico confirmado lleva su nombre, su pago del evento y no es invitación',
+  musicianText.includes('Hola Luis Pérez 👋') && musicianText.includes('🎺')
+  && musicianText.includes('📅 Fecha:') && musicianText.includes('💰 Tu pago:')
+  && musicianText.includes('$1,200.00') && musicianText.includes('$200.00 por tanda')
+  && musicianText.includes('ya pagado') && !musicianText.includes('👉 Confirma')
+  && !musicianText.includes('Asistencia confirmada') && !musicianText.includes('Marta'))
 check('enlace de WhatsApp lleva el teléfono y el mensaje', waLink('5512345678', inviteText)
   === 'https://wa.me/525512345678?text=' + encodeURIComponent(inviteText)
   && waNumber('525512345678') === '525512345678')

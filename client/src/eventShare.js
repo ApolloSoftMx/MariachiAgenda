@@ -79,6 +79,28 @@ export function buildInviteMessage(event, publicUrl) {
   ].filter((line) => line !== null).join('\n')
 }
 
+// Datos completos del evento para un músico ya confirmado: su nombre y el pago
+// capturado en el evento. No lleva enlace ni el texto de invitación.
+export function buildMusicianMessage(event, musician) {
+  const name = String(musician?.name || '').trim()
+  const tandas = Math.round(Number(event.tandas)) || 0
+  const rate = Number(musician?.payment_per_tanda ?? musician?.invite_rate_per_tanda) || 0
+  const amount = Number(musician?.payment_amount) || (rate > 0 && tandas > 0 ? rate * tandas : 0)
+  return [
+    name ? `Hola ${name} 👋,` : 'Hola 👋,',
+    '',
+    titleLine(event),
+    '',
+    ...eventLogistics(event),
+    '',
+    amount > 0 || rate > 0
+      ? `💰 Tu pago: *${fmtMoney(amount)}*${rate > 0 ? ` (${fmtMoney(rate)} por tanda)` : ''}${musician?.paid ? ' · ya pagado' : ''}`
+      : null,
+    '',
+    'Enviado desde MariachiTotal'
+  ].filter((line) => line !== null).join('\n')
+}
+
 // Mensaje individual post-confirmación: aquí sí aparece SU pago.
 export function buildConfirmationMessage(event, response) {
   const first = String(response?.name || '').trim().split(/\s+/)[0]

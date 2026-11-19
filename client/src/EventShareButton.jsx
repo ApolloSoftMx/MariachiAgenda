@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, useLoad, money } from './api.js'
 import { Modal, Field, Btn, Loading, ErrorBox, useNotify } from './ui.jsx'
 import { copyText } from './quote.js'
-import { buildEventMessage, buildInviteMessage, buildConfirmationMessage, waLink, waNumber } from './eventShare.js'
+import { buildEventMessage, buildInviteMessage, buildMusicianMessage, buildConfirmationMessage, waLink, waNumber } from './eventShare.js'
 
 // Genera una invitación pública: el encargado comparte el enlace por WhatsApp y
 // cada músico confirma su asistencia identificándose con nombre y teléfono.
@@ -33,7 +33,6 @@ export default function EventShareButton({ event, label = 'Compartir', small = f
     setInvites(data.existing || [])
   }, [data])
 
-  const musicians = (detail?.musicians || []).filter((m) => String(m.name || '').trim())
   const responses = invites.flatMap((i) => i.responses || [])
   const latest = new Map()
   for (const r of responses) latest.set(r.phone, r)
@@ -112,30 +111,40 @@ export default function EventShareButton({ event, label = 'Compartir', small = f
                 <a className="btn btn-primary" href={waLink('', inviteText)} target="_blank" rel="noreferrer">Abrir WhatsApp</a>
               </div>
 
-              {musicians.length > 0 && <>
-                <div className="section-head"><h3>Enviar a músicos ya listados</h3></div>
-                <div className="stack">
-                  {musicians.map((m, i) => (
-                    <div key={m.id || i} className="share-musician">
+            </>}
+
+            {confirmed.length > 0 && <>
+              <div className="section-head"><h3>Enviar a músicos confirmados</h3></div>
+              <p className="muted small">
+                Datos completos del evento con emojis, el nombre del músico y el pago capturado en el evento.
+                Cada mensaje es solo para ese músico.
+              </p>
+              <div className="stack">
+                {confirmed.map((r) => {
+                  const text = buildMusicianMessage(detail, r)
+                  const pago = Number(r.payment_amount)
+                    || (Number(r.payment_per_tanda || r.invite_rate_per_tanda) || 0) * (Number(detail.tandas) || 0)
+                  return (
+                    <div key={r.phone} className="share-musician">
                       <div className="who">
-                        <strong>{m.name}</strong>
-                        <div className="muted small">{m.phone ? `📱 ${m.phone}` : 'Sin teléfono'}</div>
+                        <strong>{r.name}</strong>
+                        <div className="muted small">📱 {r.phone}{pago > 0 ? ` · Pago ${money(pago)}` : ''}</div>
                       </div>
-                      <div className="row gap">
-                        {waNumber(m.phone) && (
-                          <a className="btn btn-ghost btn-sm" href={waLink(m.phone, inviteText)} target="_blank" rel="noreferrer">
-                            WhatsApp
+                      <div className="row gap wrap">
+                        {waNumber(r.phone) && (
+                          <a className="btn btn-ghost btn-sm" href={waLink(r.phone, text)} target="_blank" rel="noreferrer">
+                            📱 WhatsApp
                           </a>
                         )}
                         <button type="button" className="btn btn-ghost btn-sm"
-                          onClick={() => copy(inviteText, `Mensaje de ${m.name}`)}>
+                          onClick={() => copy(text, `Mensaje de ${r.name}`)}>
                           Copiar
                         </button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </>}
+                  )
+                })}
+              </div>
             </>}
 
             {invites.length > 0 && <>
