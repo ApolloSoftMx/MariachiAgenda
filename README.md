@@ -46,6 +46,14 @@ El registro está abierto por defecto: en el login aparece **«¿No tienes cuent
 
 Puedes cerrar el registro en **Configuración → Configuración del sistema** o con `ALLOW_REGISTRATION=false` en `.env`. Aunque el registro esté abierto, nadie entra sin aprobación.
 
+## Manual de usuario
+
+La app incluye un manual en español en **`/manual`**, disponible **antes de registrarse** (enlace «📖 Manual de usuario» en la pantalla de entrada) y **después de entrar** (menú lateral, barra superior y navegación inferior).
+
+Explica el proceso completo: cómo solicitar acceso y qué significa estar pendiente de aprobación, cómo activar y vincular el bot de Telegram, los comandos `/nuevo`, `/evento` y `/pendientes`, cómo capturar eventos y cotizaciones, cómo funciona el reporte de finanzas, los permisos por rol, la instalación como PWA y las soluciones a problemas comunes.
+
+El manual es una página pública: no requiere sesión. El código está en `client/src/pages/Manual.jsx`.
+
 ## Requisitos
 
 - Node.js **24 o superior**. Usa el módulo nativo `node:sqlite`, sin compilación.
@@ -311,7 +319,7 @@ client/src/
   api.js        cliente HTTP, helpers de fecha/dinero
   ui.jsx        componentes compartidos
   quote.js      mensaje compartible y descarga de imagen PNG
-  pages/        Dashboard, Calendar, Events, EventForm, Clients, Quotes, Catalogs, Reports, Settings
+  pages/        Dashboard, Calendar, Events, EventForm, Clients, Quotes, Catalogs, Reports, Settings, Manual
 scripts/
   smoke.mjs     prueba de humo de la API
   backup.mjs    respaldo por consola

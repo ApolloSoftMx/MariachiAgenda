@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api } from './api.js'
 import { Field, Btn } from './ui.jsx'
 import Dashboard from './pages/Dashboard.jsx'
@@ -11,6 +11,7 @@ import Quotes from './pages/Quotes.jsx'
 import Catalogs from './pages/Catalogs.jsx'
 import Reports from './pages/Reports.jsx'
 import Settings from './pages/Settings.jsx'
+import Manual from './pages/Manual.jsx'
 
 const AppCtx = createContext(null)
 export const useApp = () => useContext(AppCtx)
@@ -23,6 +24,7 @@ const NAV = [
   { to: '/cotizaciones', label: 'Cotizaciones', icon: '📄' },
   { to: '/reportes', label: 'Finanzas', icon: '💰' },
   { to: '/catalogos', label: 'Catálogos', icon: '🎼' },
+  { to: '/manual', label: 'Manual', icon: '📖' },
   { to: '/configuracion', label: 'Configuración', icon: '⚙️' }
 ]
 
@@ -40,7 +42,8 @@ function GoogleIcon() {
 function Login({ config, onLogin }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [mode, setMode] = useState('login')
+  const [mode, setMode] = useState(() =>
+    new URLSearchParams(window.location.search).get('registro') === '1' ? 'register' : 'login')
   const [name, setName] = useState('')
   const [error, setError] = useState(
     () => new URLSearchParams(window.location.search).get('auth_error') || ''
@@ -113,6 +116,9 @@ function Login({ config, onLogin }) {
         {mode === 'register' && (
           <p className="muted small">El super administrador recibe tu solicitud y decide si te da acceso.</p>
         )}
+        <div className="row gap wrap login-links">
+          <Link to="/manual" className="link-btn">📖 Manual de usuario</Link>
+        </div>
         <p className="install-hint">Para instalar en tu celular: menú del navegador → «Agregar a pantalla de inicio».</p>
       </div>
     </div>
@@ -147,6 +153,7 @@ function Layout({ user, config, notify, logout }) {
             <strong>MariachiTotal</strong>
           </div>
           <div className="topbar-actions">
+            <NavLink to="/manual" className="btn btn-ghost btn-sm">📖 Manual</NavLink>
             <NavLink to="/eventos/nuevo" className="btn btn-primary btn-sm">+ Evento</NavLink>
             <span className="topbar-user">{user.name}</span>
           </div>
@@ -163,12 +170,13 @@ function Layout({ user, config, notify, logout }) {
             <Route path="/catalogos" element={<Catalogs />} />
             <Route path="/reportes" element={<Reports />} />
             <Route path="/configuracion" element={<Settings />} />
+            <Route path="/manual" element={<Manual />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
         <nav className="bottom-nav">
           {[
-            NAV[0], NAV[2], NAV[3], NAV[4],
+            NAV[0], NAV[2], NAV[3], NAV[4], NAV[7],
             { to: '/configuracion', label: 'Más', icon: '⚙️' }
           ].map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end}
@@ -181,6 +189,14 @@ function Layout({ user, config, notify, logout }) {
       {notify && <div className="toast">{notify}</div>}
     </div>
   )
+}
+
+function Root({ user, config, onLogin, notify, logout }) {
+  const location = useLocation()
+  const isManual = location.pathname.replace(/\/+$/, '') === '/manual'
+
+  if (!user) return isManual ? <Manual standalone /> : <Login config={config} onLogin={onLogin} />
+  return <Layout user={user} config={config} notify={notify} logout={logout} />
 }
 
 export default function App() {
@@ -238,12 +254,11 @@ export default function App() {
   const value = { user, config, notify: showNotification, refreshConfig, refreshUser }
 
   if (user === undefined) return <div className="splash">🎺<span>Cargando agenda…</span></div>
-  if (!user) return <Login config={config} onLogin={setUser} />
 
   return (
     <AppCtx.Provider value={value}>
       <BrowserRouter>
-        <Layout user={user} config={config} notify={notify} logout={logout} />
+        <Root user={user} config={config} onLogin={setUser} notify={notify} logout={logout} />
       </BrowserRouter>
     </AppCtx.Provider>
   )

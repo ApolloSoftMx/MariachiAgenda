@@ -36,9 +36,9 @@ export function Badge({ children, tone = 'gray' }) {
   return <span className={'badge badge-' + tone}>{children}</span>
 }
 
-export function Section({ title, subtitle, actions, children }) {
+export function Section({ title, subtitle, actions, children, ...rest }) {
   return (
-    <section className="section">
+    <section className="section" {...rest}>
       <div className="section-head">
         <div>
           <h2>{title}</h2>
