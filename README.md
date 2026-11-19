@@ -14,6 +14,7 @@ Sistema de agenda, clientes y finanzas para un músico de mariachi. Funciona com
 - **Envío por WhatsApp sin API externa**: la app construye el mensaje y el enlace `wa.me/...`; tú eliges cuándo enviarlo. El mensaje incluye el enlace a la cotización y al PDF.
 - **Dos roles de sistema**: **super administrador** (usuarios, Telegram, respaldos) y **usuario final** (agenda, clientes y finanzas). No se confunden con el rol por evento.
 - **Colores en la agenda**: los eventos de tu grupo toman el color de la agrupación; los eventos como invitado usan un color configurable en **Configuración → Color de eventos como invitado** (o `GUEST_EVENT_COLOR` en `.env`).
+- **Tema claro y oscuro**: botón ◐ en la barra superior, en el login y en el manual público; o en **Configuración → Apariencia**. Se guarda por dispositivo y «Sistema» sigue la preferencia del dispositivo.
 - **Acceso con Google** (opcional): los usuarios entran con su cuenta de Gmail sin escribir contraseña.
 - **Bot de Telegram**: recordatorios 24 h / 1 h antes, consulta de agenda y **alta de eventos desde Telegram**.
 - **Respaldos** desde la web (solo super administrador) y con `respaldar.bat`.

@@ -4,3 +4,11 @@ data/
 .env
 *.log
 .DS_Store
+
+# Estado local de Impeccable (decisiones por sesión caché); se commitea solo config.json
+.impeccable/questions/
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/critique/
+.impeccable/reports/
+.impeccable/config.local.json

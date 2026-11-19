@@ -35,7 +35,7 @@ export default function Dashboard() {
           <div className="card-list">
             {upcoming.map((e) => (
               <Link key={e.id} to={'/eventos/' + e.id} className="event-row"
-                style={{ borderLeft: '4px solid ' + (e.event_color || (e.role === 'guest' ? '#e11d48' : '#7c3aed')) }}>
+                style={{ border: '2px solid ' + (e.event_color || (e.role === 'guest' ? '#e11d48' : '#7c3aed')) }}>
                 <div className="date-box"><strong>{dateShort(e.starts_at).split(' ')[0]}</strong><small>{dateShort(e.starts_at).split(' ')[1]}</small></div>
                 <div className="event-row-main">
                   <div className="row gap wrap"><strong>{e.title}</strong>{roleBadge(e.role, e.band_kind, e.band_responsable)}{statusBadge(e.status)}</div>

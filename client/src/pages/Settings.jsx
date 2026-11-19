@@ -3,6 +3,7 @@ import { api, useLoad } from '../api.js'
 import { useApp } from '../App.jsx'
 import { Loading, ErrorBox, Section, Field, Btn, Modal, Badge, confirmAction, useNotify } from '../ui.jsx'
 import { copyText } from '../quote.js'
+import { ThemeSelector } from '../theme.jsx'
 
 const blankUser = { name: '', email: '', password: '', role: 'user', phone: '' }
 const roleLabel = (role) => (role === 'admin' ? 'Super administrador' : 'Usuario')
@@ -490,6 +491,15 @@ export default function Settings() {
             Suscripciones {config.subscriptionsEnabled ? 'activadas' : 'preparadas, desactivadas'}
           </Badge>
           {user.googleLinked && <Badge tone="blue">Cuenta de Google vinculada</Badge>}
+        </div>
+      </Section>
+      <Section title="Apariencia" subtitle="Elige el tema que prefieras; se guarda en este dispositivo">
+        <div className="stack">
+          <div>
+            <strong>Tema</strong>
+            <p className="muted small">«Sistema» sigue la preferencia de claro u oscuro de tu dispositivo.</p>
+          </div>
+          <ThemeSelector />
         </div>
       </Section>
       <TelegramCard config={config} isAdmin={isAdmin} />

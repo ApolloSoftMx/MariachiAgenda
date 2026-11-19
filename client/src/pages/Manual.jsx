@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Section, Badge } from '../ui.jsx'
+import { ThemeToggle } from '../theme.jsx'
 
 const TOC = [
   ['que-es', 'Qué es MariachiTotal'],
@@ -10,6 +11,7 @@ const TOC = [
   ['clientes', 'Clientes y cotizaciones'],
   ['finanzas', 'Finanzas y reportes'],
   ['permisos', 'Permisos y roles'],
+  ['tema', 'Tema claro y oscuro'],
   ['instalar', 'Instalar la app'],
   ['problemas', 'Problemas comunes']
 ]
@@ -137,7 +139,16 @@ export default function Manual({ standalone = false }) {
         <p className="muted small">Los dos perfiles son distintos al rol del evento: <em>leader</em> (mi grupo) y <em>guest</em> (invitado). Un usuario puede tener roles distintos en eventos diferentes. En el calendario y la lista, los eventos de tu grupo usan el color de la agrupación y los eventos como invitado usan un color propio que el super administrador puede cambiar en <strong>Configuración → Color de eventos como invitado</strong>.</p>
       </Section>
 
-      <Section title="9. Instalar la app en tu celular" id="instalar">
+      <Section title="9. Tema claro y oscuro" id="tema">
+        <Pasos>
+          <Paso>El botón <strong>◐</strong> de la barra superior cambia entre <strong>Claro</strong>, <strong>Oscuro</strong> y <strong>Sistema</strong>.</Paso>
+          <Paso>También puedes elegirlo en <strong>Configuración → Apariencia → Tema</strong>. Tu elección se guarda en este dispositivo.</Paso>
+          <Paso>Con <strong>Sistema</strong> (la opción inicial), la app sigue automáticamente el modo claro u oscuro de tu celular o computadora, incluso si lo cambias mientras la app está abierta.</Paso>
+        </Pasos>
+        <p className="muted small">El botón de tema también aparece en el inicio de sesión y en este manual público, para que puedas elegirlo antes de entrar.</p>
+      </Section>
+
+      <Section title="10. Instalar la app en tu celular" id="instalar">
         <Pasos>
           <Paso><strong>Android (Chrome):</strong> menú del navegador → «Agregar a pantalla de inicio» o «Instalar aplicación».</Paso>
           <Paso><strong>iPhone (Safari):</strong> botón Compartir → «Agregar a pantalla de inicio».</Paso>
@@ -145,7 +156,7 @@ export default function Manual({ standalone = false }) {
         </Pasos>
       </Section>
 
-      <Section title="10. Problemas comunes" id="problemas">
+      <Section title="11. Problemas comunes" id="problemas">
         <div className="table-wrap"><table>
           <thead><tr><th>Situación</th><th>Qué hacer</th></tr></thead>
           <tbody>
@@ -173,6 +184,7 @@ export default function Manual({ standalone = false }) {
       <header className="manual-topbar">
         <Link to="/" className="manual-brand"><span>🎺</span><strong>MariachiTotal</strong></Link>
         <div className="row gap">
+          <ThemeToggle />
           <Link to="/?registro=1" className="btn btn-ghost btn-sm">Solicitar acceso</Link>
           <Link to="/" className="btn btn-primary btn-sm">Iniciar sesión</Link>
         </div>

@@ -12,6 +12,7 @@ import Catalogs from './pages/Catalogs.jsx'
 import Reports from './pages/Reports.jsx'
 import Settings from './pages/Settings.jsx'
 import Manual from './pages/Manual.jsx'
+import { ThemeToggle } from './theme.jsx'
 
 const AppCtx = createContext(null)
 export const useApp = () => useContext(AppCtx)
@@ -78,6 +79,7 @@ function Login({ config, onLogin }) {
   return (
     <div className="login-page">
       <div className="login-card">
+        <div className="row" style={{ justifyContent: 'flex-end' }}><ThemeToggle /></div>
         <div className="login-brand">
           <div className="login-logo">🎺</div>
           <h1>MariachiTotal</h1>
@@ -153,6 +155,7 @@ function Layout({ user, config, notify, logout }) {
             <strong>MariachiTotal</strong>
           </div>
           <div className="topbar-actions">
+            <ThemeToggle />
             <NavLink to="/manual" className="btn btn-ghost btn-sm">📖 Manual</NavLink>
             <NavLink to="/eventos/nuevo" className="btn btn-primary btn-sm">+ Evento</NavLink>
             <span className="topbar-user">{user.name}</span>
