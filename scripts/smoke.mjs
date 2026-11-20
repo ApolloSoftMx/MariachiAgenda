@@ -19,6 +19,7 @@ process.env.SEED_OWNER_NAME = 'Smoke'
 process.env.ALLOW_REGISTRATION = 'true'
 
 const { createApp } = await import('../server/app.js')
+const { run } = await import('../server/db.js')
 const app = createApp({})
 const server = app.listen(0, '127.0.0.1')
 await new Promise((r) => server.once('listening', r))
@@ -347,6 +348,35 @@ const user = await call('POST', '/users', { name: 'Usuario final', email: 'user@
 check('usuario creado', user.id)
 const login = await call('POST', '/auth/login', { email: 'user@test.local', password: 'user123' })
 check('login usuario final', login.user.role === 'user')
+const userCookie = cookie
+
+const ownBands = await call('GET', '/bands')
+const ownClients = await call('GET', '/clients')
+const ownAccounts = await call('GET', '/accounts')
+const ownMusicians = await call('GET', '/musicians')
+check('usuario no ve catálogos ajenos', ownBands.length === 0 && ownClients.length === 0
+  && ownAccounts.length === 0 && ownMusicians.length === 0)
+let hiddenClient = false
+try { await call('PATCH', `/clients/${client.id}`, { name: 'Hack' }) } catch (err) { hiddenClient = String(err.message).includes('404') }
+check('usuario no edita cliente ajeno', hiddenClient)
+let hiddenAccount = false
+try { await call('DELETE', `/accounts/${account.id}`) } catch (err) { hiddenAccount = String(err.message).includes('404') }
+check('usuario no borra cuenta ajena', hiddenAccount)
+let hiddenMusician = false
+try { await call('PATCH', `/musicians/${musician.id}`, { name: 'Hack' }) } catch (err) { hiddenMusician = String(err.message).includes('404') }
+check('usuario no edita músico ajeno', hiddenMusician)
+const ownClient = await call('POST', '/clients', { name: 'Cliente propio', phone: '5511110000' })
+const ownAccount = await call('POST', '/accounts', { name: 'Cuenta propia' })
+const ownMusician = await call('POST', '/musicians', { name: 'Músico propio', phone: '5522220000' })
+check('usuario crea sus propios catálogos', ownClient.id && ownAccount.id && ownMusician.id
+  && (await call('GET', '/clients')).length === 1
+  && (await call('GET', '/accounts')).length === 1
+  && (await call('GET', '/musicians')).length === 1)
+let foreignCatalogRef = false
+try {
+  await call('POST', '/events', { title: 'Evento con ajeno', starts_at: '2027-01-11T19:00', client_id: client.id })
+} catch (err) { foreignCatalogRef = String(err.message).includes('no está disponible') }
+check('usuario no usa catálogo ajeno en evento', foreignCatalogRef)
 
 const ownEvent = await call('POST', '/events', { title: 'Evento propio', starts_at: '2027-01-10T18:00' })
 const visibleEvents = await call('GET', '/events')
@@ -371,6 +401,39 @@ try { await call('GET', `/quotes/${quote.id}`) } catch (err) { hiddenQuote = Str
 check('usuario no ve cotización ajena', hiddenQuote)
 const ownReport = await call('GET', '/reports?from=2026-12-01&to=2026-12-31')
 check('reporte del usuario excluye datos ajenos', ownReport.totals.eventCount === 0)
+const ownEventWithMusician = await call('POST', '/events', {
+  title: 'Evento propio con músico', starts_at: '2027-01-12T19:00',
+  musicians: [{ name: 'Luis', phone: '5599998888', payment_amount: 100 }]
+})
+const ownMusicianRow = (await call('GET', '/events/' + ownEventWithMusician.id)).musicians[0]
+check('músico ajeno no se reutiliza', ownMusicianRow.musician_id !== null
+  && ownMusicianRow.musician_id !== musician.id)
+
+// Referencia heredada de cuando los catálogos eran compartidos: se respeta al editar.
+run('UPDATE events SET client_id = ? WHERE id = ?', client.id, ownEvent.id)
+const legacyEdit = await call('PATCH', `/events/${ownEvent.id}`, { title: 'Evento heredado' })
+check('referencia heredada no bloquea la edición', legacyEdit.client_id === client.id)
+
+// El admin ve y usa catálogos ajenos, pero una invitación sobre evento ajeno
+// crea el músico en el catálogo del dueño del evento.
+cookie = adminCookie
+const adminEvent = await call('POST', '/events', {
+  title: 'Evento del admin con catálogo ajeno', starts_at: '2027-01-13T19:00',
+  band_id: guestBand.id, client_id: ownClient.id, tandas: 2, rate_per_tanda: 100
+})
+check('admin usa catálogos ajenos', adminEvent.band_id === guestBand.id
+  && adminEvent.client_id === ownClient.id && adminEvent.role === 'guest')
+const adminInvite = await call('POST', `/events/${ownEvent.id}/invites`, { rate_per_tanda: 200 })
+const adminInviteRes = await fetch(publicRoot + '/e/' + adminInvite.token + '/respond', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ name: 'Músico Invitado Admin', phone: '5533334444', status: 'confirmed' })
+})
+check('invitación creada por admin responde', adminInviteRes.ok)
+cookie = userCookie
+const invitedCatalog = (await call('GET', '/musicians')).find((m) => m.phone === '525533334444')
+check('invitación de admin usa catálogo del dueño', invitedCatalog?.created_by === user.id)
+const ownerEdit = await call('PATCH', `/events/${ownEvent.id}`, { title: 'Evento reparado' })
+check('dueño edita evento con invitación de admin', ownerEdit.id === ownEvent.id)
 
 let forbidden = false
 try { await call('GET', '/users') } catch (err) { forbidden = String(err.message).includes('403') }

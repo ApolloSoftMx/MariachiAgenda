@@ -96,7 +96,7 @@ function linkedUser(ctx) {
 function findOrCreateClient(name, userId) {
   const clean = String(name || '').trim()
   if (!clean || clean === '-') return null
-  let client = one('SELECT id FROM clients WHERE name = ? COLLATE NOCASE', clean)
+  let client = one('SELECT id FROM clients WHERE name = ? COLLATE NOCASE AND created_by = ?', clean, userId)
   if (!client) {
     const info = run('INSERT INTO clients (name, phone, notes, created_by) VALUES (?, ?, ?, ?)',
       clean, '', '', userId)

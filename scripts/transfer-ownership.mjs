@@ -4,7 +4,7 @@
 import { one, run, db, dbPath } from '../server/db.js'
 import { createBackup } from '../server/backup.js'
 
-const TABLES = ['bands', 'clients', 'musicians', 'events', 'event_invites', 'expenses', 'quotes']
+const TABLES = ['bands', 'clients', 'musicians', 'accounts', 'events', 'event_invites', 'expenses', 'quotes']
 
 const usage = `Uso:
   npm run transfer -- --from CORREO_ORIGEN --to CORREO_DESTINO [--promote] [--apply]
@@ -16,9 +16,10 @@ Opciones:
   --apply   Ejecuta el cambio. Sin esta opción solo hace una simulación.
   --help    Muestra esta ayuda.
 
-El destino queda activo y con suscripción activa. Las cuentas bancarias (accounts)
-no tienen dueño, por eso no se trasladan. Las sesiones y notificaciones de Telegram
-tampoco se mueven: pertenecen a cada usuario.`
+El destino queda activo y con suscripción activa. Se trasladan todos los catálogos
+(clientes, músicos, agrupaciones y cuentas bancarias) junto con eventos, cotizaciones
+y gastos. Las sesiones y notificaciones de Telegram no se mueven: pertenecen a cada
+usuario.`
 
 function parseArgs(argv) {
   const args = {}
@@ -71,8 +72,8 @@ console.log(`Destino: ${to.name} <${to.email}> (id ${to.id}, ${to.role})`)
 console.log('\nRegistros que cambiarían de dueño:')
 for (const row of counts) console.log(`  ${row.table.padEnd(14)} ${row.n}`)
 console.log(`  ${'TOTAL'.padEnd(14)} ${total}`)
-console.log('\nNota: músicos, clientes y agrupaciones son catálogos compartidos; ahí created_by es solo metadato.')
-console.log('      Eventos, cotizaciones y gastos sí cambian de visibilidad para usuarios finales.')
+console.log('\nNota: la app es personal. Los catálogos son privados: al cambiar created_by,')
+console.log('      el usuario de destino ve esos registros y el de origen deja de verlos.')
 
 if (!total) {
   console.log('\nNo hay registros para trasladar.')

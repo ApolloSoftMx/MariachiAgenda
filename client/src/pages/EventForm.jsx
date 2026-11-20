@@ -315,7 +315,7 @@ export default function EventForm() {
             <label className="check">
               <input type="checkbox" checked={form.catalog_new_musicians !== false}
                 onChange={(e) => set('catalog_new_musicians', e.target.checked)} />
-              Guardar los músicos nuevos en el catálogo para poder seleccionarlos en otros eventos
+              Guardar los músicos nuevos en mi catálogo para poder seleccionarlos en otros eventos
             </label>
             {form.musicians.length === 0 && <p className="muted small">Opcional: agrega nombres, teléfonos, pago por tanda y lo que se les pagará a cada uno.</p>}
             <div className="stack">

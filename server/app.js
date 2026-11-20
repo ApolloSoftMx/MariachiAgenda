@@ -97,6 +97,25 @@ const decodeHeader = (value, fallback) => {
 }
 
 const canAccess = (user, row) => user?.role === 'admin' || Number(row?.created_by) === Number(user?.id)
+const ownedCatalog = (req, table) => {
+  const row = one(`SELECT * FROM ${table} WHERE id = ?`, idParam(req))
+  return row && canAccess(req.user, row) ? row : null
+}
+const catalogBelongsTo = (table, value, ownerId) => {
+  if (value === null || value === undefined || value === '') return true
+  const row = one(`SELECT created_by FROM ${table} WHERE id = ?`, Number(value))
+  return Boolean(row) && Number(row.created_by) === Number(ownerId)
+}
+// `previous` son referencias que el registro ya tenía antes de volver privados los
+// catálogos. Se respetan para no bloquear la edición de datos heredados.
+const invalidCatalog = (pairs, ownerId) => pairs.some(([table, value, previous]) => {
+  if (value === null || value === undefined || value === '') return false
+  if (previous !== undefined && Number(value) === Number(previous)) return false
+  return !catalogBelongsTo(table, value, ownerId)
+})
+// El admin ve todos los catálogos y puede usarlos al crear sus propios registros.
+const catalogCheck = (req, pairs, ownerId) =>
+  req.user.role !== 'admin' && invalidCatalog(pairs, ownerId)
 const notFound = (res) => res.status(404).json({ error: 'No encontrado' })
 const pad2 = (n) => String(n).padStart(2, '0')
 const localDate = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
@@ -609,8 +628,10 @@ export function createApp(config = {}) {
   })
 
   // ---------- bands ----------
-  app.get('/api/bands', requireAuth, subGuard, (_req, res) => {
-    res.json(all('SELECT * FROM bands ORDER BY kind, name'))
+  app.get('/api/bands', requireAuth, subGuard, (req, res) => {
+    res.json(req.user.role === 'admin'
+      ? all('SELECT * FROM bands ORDER BY kind, name')
+      : all('SELECT * FROM bands WHERE created_by = ? ORDER BY kind, name', req.user.id))
   })
 
   app.post('/api/bands', requireAuth, subGuard, (req, res) => {
@@ -627,6 +648,7 @@ export function createApp(config = {}) {
   })
 
   app.patch('/api/bands/:id', requireAuth, subGuard, (req, res) => {
+    if (!ownedCatalog(req, 'bands')) return notFound(res)
     const p = z.object({
       name: z.string().min(1).max(100).optional(),
       kind: z.enum(['own', 'guest']).optional(),
@@ -646,17 +668,22 @@ export function createApp(config = {}) {
   })
 
   app.delete('/api/bands/:id', requireAuth, subGuard, (req, res) => {
+    if (!ownedCatalog(req, 'bands')) return notFound(res)
     run('UPDATE bands SET active = 0 WHERE id = ?', idParam(req))
     res.json({ ok: true })
   })
 
   // ---------- clients ----------
-  app.get('/api/clients', requireAuth, subGuard, (_req, res) => {
+  app.get('/api/clients', requireAuth, subGuard, (req, res) => {
+    const admin = req.user.role === 'admin'
+    const scope = admin ? '' : ' AND e.created_by = ?'
+    const scopeParams = admin ? [] : [req.user.id, req.user.id, req.user.id]
     res.json(all(`
       SELECT c.*,
-        (SELECT COUNT(*) FROM events e WHERE e.client_id = c.id) AS event_count,
-        (SELECT COALESCE(SUM(e.charged_amount),0) FROM events e WHERE e.client_id = c.id AND e.status <> 'cancelled') AS total_charged
-      FROM clients c ORDER BY c.name COLLATE NOCASE`))
+        (SELECT COUNT(*) FROM events e WHERE e.client_id = c.id${scope}) AS event_count,
+        (SELECT COALESCE(SUM(e.charged_amount),0) FROM events e WHERE e.client_id = c.id AND e.status <> 'cancelled'${scope}) AS total_charged
+      FROM clients c${admin ? '' : ' WHERE c.created_by = ?'} ORDER BY c.name COLLATE NOCASE`,
+    ...scopeParams))
   })
 
   app.post('/api/clients', requireAuth, subGuard, (req, res) => {
@@ -672,6 +699,7 @@ export function createApp(config = {}) {
   })
 
   app.patch('/api/clients/:id', requireAuth, subGuard, (req, res) => {
+    if (!ownedCatalog(req, 'clients')) return notFound(res)
     const p = z.object({
       name: z.string().min(1).max(120).optional(),
       phone: z.string().max(40).optional(),
@@ -685,13 +713,16 @@ export function createApp(config = {}) {
   })
 
   app.delete('/api/clients/:id', requireAuth, subGuard, (req, res) => {
+    if (!ownedCatalog(req, 'clients')) return notFound(res)
     run('DELETE FROM clients WHERE id = ?', idParam(req))
     res.json({ ok: true })
   })
 
   // ---------- accounts ----------
-  app.get('/api/accounts', requireAuth, subGuard, (_req, res) => {
-    res.json(all('SELECT * FROM accounts ORDER BY name'))
+  app.get('/api/accounts', requireAuth, subGuard, (req, res) => {
+    res.json(req.user.role === 'admin'
+      ? all('SELECT * FROM accounts ORDER BY name')
+      : all('SELECT * FROM accounts WHERE created_by = ? ORDER BY name', req.user.id))
   })
 
   app.post('/api/accounts', requireAuth, subGuard, (req, res) => {
@@ -701,12 +732,13 @@ export function createApp(config = {}) {
       details: z.string().max(200).optional().default('')
     }).safeParse(req.body || {})
     if (!p.success) return res.status(400).json({ error: 'Datos inválidos' })
-    const info = run('INSERT INTO accounts (name, type, details) VALUES (?, ?, ?)',
-      p.data.name, p.data.type, p.data.details)
+    const info = run('INSERT INTO accounts (name, type, details, created_by) VALUES (?, ?, ?, ?)',
+      p.data.name, p.data.type, p.data.details, req.user.id)
     res.status(201).json({ ok: true, id: Number(info.lastInsertRowid) })
   })
 
   app.patch('/api/accounts/:id', requireAuth, subGuard, (req, res) => {
+    if (!ownedCatalog(req, 'accounts')) return notFound(res)
     const p = z.object({
       name: z.string().min(1).max(100).optional(),
       type: z.enum(['bank', 'cash', 'other']).optional(),
@@ -725,6 +757,7 @@ export function createApp(config = {}) {
   })
 
   app.delete('/api/accounts/:id', requireAuth, subGuard, (req, res) => {
+    if (!ownedCatalog(req, 'accounts')) return notFound(res)
     run('DELETE FROM accounts WHERE id = ?', idParam(req))
     res.json({ ok: true })
   })
@@ -832,6 +865,9 @@ export function createApp(config = {}) {
     const parsed = zQuote.safeParse(raw)
     if (!parsed.success) return res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() })
     const d = parsed.data
+    if (catalogCheck(req, [['clients', d.client_id], ['accounts', d.deposit_account_id]], req.user.id)) {
+      return res.status(400).json({ error: 'Uno de los catálogos seleccionados no está disponible' })
+    }
     if ((raw.amount === undefined || raw.amount === null || raw.amount === '')
       && d.rate_per_tanda > 0 && d.tandas > 0) {
       d.amount = Number((d.rate_per_tanda * d.tandas).toFixed(2))
@@ -855,6 +891,12 @@ export function createApp(config = {}) {
     const parsed = zQuote.partial().safeParse(raw)
     if (!parsed.success) return res.status(400).json({ error: 'Datos inválidos' })
     const d = parsed.data
+    if (invalidCatalog([
+      ['clients', d.client_id !== undefined ? d.client_id : quote.client_id, quote.client_id],
+      ['accounts', d.deposit_account_id !== undefined ? d.deposit_account_id : quote.deposit_account_id, quote.deposit_account_id]
+    ], quote.created_by)) {
+      return res.status(400).json({ error: 'Uno de los catálogos seleccionados no está disponible' })
+    }
     if (raw.amount === undefined && (raw.rate_per_tanda !== undefined || raw.tandas !== undefined)) {
       const rate = d.rate_per_tanda ?? quote.rate_per_tanda
       const tandas = d.tandas ?? quote.tandas
@@ -1091,10 +1133,14 @@ ${acceptBlock}
   })
 
   // ---------- musicians ----------
-  app.get('/api/musicians', requireAuth, subGuard, (_req, res) => {
+  app.get('/api/musicians', requireAuth, subGuard, (req, res) => {
+    const admin = req.user.role === 'admin'
+    const scope = admin ? '' : ' AND e.created_by = ?'
     res.json(all(`
-      SELECT m.*, (SELECT COUNT(*) FROM event_musicians em WHERE em.musician_id = m.id) AS event_count
-      FROM musicians m ORDER BY m.name COLLATE NOCASE`))
+      SELECT m.*, (SELECT COUNT(*) FROM event_musicians em JOIN events e ON e.id = em.event_id
+                    WHERE em.musician_id = m.id${scope}) AS event_count
+      FROM musicians m${admin ? '' : ' WHERE m.created_by = ?'} ORDER BY m.name COLLATE NOCASE`,
+    ...(admin ? [] : [req.user.id, req.user.id])))
   })
 
   app.post('/api/musicians', requireAuth, subGuard, (req, res) => {
@@ -1110,6 +1156,7 @@ ${acceptBlock}
   })
 
   app.patch('/api/musicians/:id', requireAuth, subGuard, (req, res) => {
+    if (!ownedCatalog(req, 'musicians')) return notFound(res)
     const p = z.object({
       name: z.string().min(1).max(120).optional(),
       phone: z.string().max(40).optional(),
@@ -1128,6 +1175,7 @@ ${acceptBlock}
   })
 
   app.delete('/api/musicians/:id', requireAuth, subGuard, (req, res) => {
+    if (!ownedCatalog(req, 'musicians')) return notFound(res)
     run('DELETE FROM musicians WHERE id = ?', idParam(req))
     res.json({ ok: true })
   })
@@ -1150,8 +1198,16 @@ ${acceptBlock}
   app.post('/api/events', requireAuth, subGuard, (req, res) => {
     const parsed = zEvent.safeParse(req.body || {})
     if (!parsed.success) return res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() })
+    if (catalogCheck(req, [
+      ['bands', parsed.data.band_id],
+      ['clients', parsed.data.client_id],
+      ['accounts', parsed.data.advance_account_id],
+      ...(Array.isArray(parsed.data.musicians) ? parsed.data.musicians.map((m) => ['musicians', m.musician_id]) : [])
+    ], req.user.id)) {
+      return res.status(400).json({ error: 'Uno de los catálogos seleccionados no está disponible' })
+    }
     try {
-      const event = saveEvent(parsed.data, null, req.user.id)
+      const event = saveEvent(parsed.data, null, req.user.id, { anyCatalogOwner: req.user.role === 'admin' })
       res.status(201).json(event)
     } catch (err) {
       console.error('[event create]', err)
@@ -1176,8 +1232,21 @@ ${acceptBlock}
     }
     const parsed = zEvent.safeParse(merged)
     if (!parsed.success) return res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() })
+    const previousMusicians = new Set(all('SELECT musician_id FROM event_musicians WHERE event_id = ?', existing.id)
+      .map((row) => Number(row.musician_id)))
+    if (invalidCatalog([
+      ['bands', parsed.data.band_id, existing.band_id],
+      ['clients', parsed.data.client_id, existing.client_id],
+      ['accounts', parsed.data.advance_account_id, existing.advance_account_id],
+      ...(Array.isArray(parsed.data.musicians) ? parsed.data.musicians.map((m) => [
+        'musicians', m.musician_id,
+        previousMusicians.has(Number(m.musician_id)) ? m.musician_id : undefined
+      ]) : [])
+    ], existing.created_by)) {
+      return res.status(400).json({ error: 'Uno de los catálogos seleccionados no está disponible' })
+    }
     try {
-      res.json(saveEvent(parsed.data, existing.id, req.user.id))
+      res.json(saveEvent(parsed.data, existing.id, existing.created_by))
     } catch (err) {
       console.error('[event update]', err)
       res.status(500).json({ error: 'No se pudo actualizar el evento' })
@@ -1226,7 +1295,7 @@ ${acceptBlock}
     const token = crypto.randomBytes(18).toString('hex')
     const info = run(
       'INSERT INTO event_invites (event_id, token, rate_per_tanda, created_by) VALUES (?, ?, ?, ?)',
-      existing.id, token, parsed.data.rate_per_tanda, req.user.id
+      existing.id, token, parsed.data.rate_per_tanda, existing.created_by ?? req.user.id
     )
     res.status(201).json({
       id: Number(info.lastInsertRowid), token, rate_per_tanda: parsed.data.rate_per_tanda,

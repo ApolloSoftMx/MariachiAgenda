@@ -83,7 +83,7 @@ export default function EventShareButton({ event, label = 'Compartir', small = f
             <div className="section-head"><h3>Invitación con confirmación</h3></div>
             <p className="muted small">
               Crea un enlace público, envíalo por WhatsApp y cada músico confirmará su asistencia con nombre y teléfono.
-              Al confirmar se agrega al evento; si su teléfono ya está en el catálogo, se reutiliza ese músico.
+              Al confirmar se agrega al evento; si su teléfono ya está en tu catálogo, se reutiliza ese músico.
             </p>
             <Field
               label="Pago por tanda para esta invitación"

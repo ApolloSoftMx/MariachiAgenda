@@ -1,6 +1,7 @@
 import { all, one, run, db } from './db.js'
 import { addHoursToStamp, normalizeTandas } from './datetime.js'
 import { setting } from './settings.js'
+import { findOrCreateMusician } from './musicians.js'
 
 const OWN_COLOR = '#7c3aed'
 const GUEST_COLOR = '#e11d48'
@@ -40,22 +41,6 @@ export const EVENT_SELECT = `
 
 export const getEvent = (id) => withColors([one(EVENT_SELECT + ' WHERE e.id = ?', id)])[0]
 
-// Un músico capturado por nombre en el evento también entra al catálogo compartido.
-// La búsqueda por nombre (sin importar mayúsculas) evita duplicados, incluso si el
-// mismo nombre aparece varias veces en el mismo evento: la fila insertada ya es
-// visible para la siguiente consulta dentro de la transacción de saveEvent().
-function catalogIdForNewMusician(name, phone, defaultPayment, createdBy) {
-  const clean = String(name || '').trim().replace(/\s+/g, ' ')
-  if (!clean) return null
-  const found = one('SELECT id FROM musicians WHERE TRIM(name) COLLATE NOCASE = ? ORDER BY id LIMIT 1', clean)
-  if (found) return Number(found.id)
-  const info = run(
-    'INSERT INTO musicians (name, phone, default_payment, active, created_by) VALUES (?, ?, ?, 1, ?)',
-    clean, String(phone || '').trim(), Number(defaultPayment) || 0, createdBy
-  )
-  return Number(info.lastInsertRowid)
-}
-
 export function listEvents({ from, to, status, band_id, limit, viewer } = {}) {
   const where = []
   const params = []
@@ -70,7 +55,11 @@ export function listEvents({ from, to, status, band_id, limit, viewer } = {}) {
 }
 
 export function saveEvent(data, id = null, createdBy = null, options = {}) {
-  const band = data.band_id ? one('SELECT kind FROM bands WHERE id = ?', data.band_id) : null
+  const band = data.band_id
+    ? (options.anyCatalogOwner
+        ? one('SELECT kind FROM bands WHERE id = ?', data.band_id)
+        : one('SELECT kind FROM bands WHERE id = ? AND created_by = ?', data.band_id, createdBy))
+    : null
   const role = band ? (band.kind === 'guest' ? 'guest' : 'leader') : (data.role || 'leader')
   const tandas = normalizeTandas(data.tandas)
   const ratePerTanda = Number(data.rate_per_tanda) || 0
@@ -117,7 +106,10 @@ export function saveEvent(data, id = null, createdBy = null, options = {}) {
         : (rate > 0 && tandas > 0 ? rate * tandas : 0)
       let musicianId = m.musician_id ?? null
       if (!musicianId && catalogNew && String(m.name || '').trim()) {
-        musicianId = catalogIdForNewMusician(m.name, m.phone, payment > 0 ? payment : rate, createdBy)
+        const catalogMusician = findOrCreateMusician({
+          name: m.name, phone: m.phone, defaultPayment: payment > 0 ? payment : rate, createdBy
+        })
+        musicianId = catalogMusician ? Number(catalogMusician.id) : null
       }
       run(`INSERT INTO event_musicians (event_id, musician_id, name, phone, payment_per_tanda, payment_amount, paid)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,

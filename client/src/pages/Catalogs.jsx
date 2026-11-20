@@ -21,7 +21,7 @@ const CONFIG = {
   },
   musicians: {
     title: 'Músicos',
-    subtitle: 'Catálogo para rellenar rápidamente los músicos de cada evento',
+    subtitle: 'Tu catálogo para rellenar rápidamente los músicos de cada evento',
     blank: { name: '', phone: '', default_payment: 0 },
     fields: [
       { key: 'name', label: 'Nombre', type: 'text' },

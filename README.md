@@ -32,7 +32,7 @@ Hay dos cosas distintas:
 
 El rol por evento se guarda en `events.role`; el rol de la cuenta se guarda en `users.role`. No dependen entre sí.
 
-**Visibilidad de datos:** el super administrador ve todos los eventos, cotizaciones y gastos. Los usuarios finales solo ven lo que ellos crearon (`created_by = su id`); no pueden ver, editar ni borrar eventos o cotizaciones de otra cuenta, aunque la otra cuenta sea administrador. Los recordatorios de Telegram también van solo al creador del evento.
+**Visibilidad de datos:** la app es personal. El super administrador ve todo. Los usuarios finales solo ven lo que ellos crearon (`created_by = su id`): eventos, cotizaciones, gastos **y también sus catálogos de clientes, músicos, agrupaciones y cuentas bancarias**. No pueden ver, editar ni borrar registros de otra cuenta. Los recordatorios de Telegram también van solo al creador del evento. Los músicos compartidos entre usuarios se evaluarán en una versión futura; por ahora cada usuario maneja los suyos.
 
 **El super administrador no es un correo fijo.** Es un rol: el primer arranque crea una cuenta admin (`owner@agenda.local` por defecto), y desde **Configuración → Usuarios** puedes nombrar a otra persona como super administrador. Siempre debe quedar al menos un admin activo.
 
@@ -60,7 +60,7 @@ En **Configuración → Usuarios** verás **todas** las cuentas en una sola tabl
 
 ### Traspasar los datos del usuario `owner` a otro usuario
 
-Los eventos, cotizaciones y gastos pertenecen a quien los creó (`created_by`). Músicos, clientes y agrupaciones son catálogos compartidos: ahí `created_by` es solo metadato. Las cuentas bancarias no tienen dueño.
+Todos los registros pertenecen a quien los creó (`created_by`): eventos, cotizaciones, gastos, clientes, músicos, agrupaciones y cuentas bancarias. La app es personal; al traspasar una cuenta se mueven **todos** sus catálogos junto con sus eventos.
 
 Para pasarle todos los registros a otro usuario (sin tocar la base de producción todavía), primero crea esa cuenta en **Configuración → Usuarios**, con contraseña y rol **Super administrador**. Luego, desde la carpeta del proyecto:
 

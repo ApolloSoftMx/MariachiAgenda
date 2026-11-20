@@ -9,12 +9,15 @@ export function normalizePhone(value) {
 
 const normalizeName = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase()
 
-// Si el teléfono ya está en el catálogo se reutiliza ese músico (no se crea otro).
+// Catálogo personal: solo se reutilizan músicos del mismo dueño.
+// Si el teléfono ya está en ese catálogo se reutiliza ese músico (no se crea otro).
 // El nombre es el respaldo para bases antiguas sin teléfono normalizado.
 export function findOrCreateMusician({ name, phone, defaultPayment = 0, createdBy = null }) {
+  // Sin dueño no se guarda nada: crearíamos un músico invisible en el catálogo.
+  if (createdBy === null || createdBy === undefined) return null
   const clean = String(name || '').trim().replace(/\s+/g, ' ').slice(0, 120)
   const digits = normalizePhone(phone)
-  const catalog = all('SELECT * FROM musicians')
+  const catalog = all('SELECT * FROM musicians WHERE created_by = ?', createdBy)
   const found = (digits ? catalog.find((m) => normalizePhone(m.phone) === digits) : null)
     || catalog.find((m) => normalizeName(m.name) === normalizeName(clean))
   if (found) return found

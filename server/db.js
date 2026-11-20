@@ -65,7 +65,8 @@ CREATE TABLE IF NOT EXISTS accounts (
   name TEXT NOT NULL,
   type TEXT NOT NULL DEFAULT 'bank',
   details TEXT,
-  active INTEGER NOT NULL DEFAULT 1
+  active INTEGER NOT NULL DEFAULT 1,
+  created_by INTEGER REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS musicians (
@@ -268,6 +269,16 @@ if (!quoteColumns.includes('event_id')) {
   db.exec('ALTER TABLE quotes ADD COLUMN event_id INTEGER REFERENCES events(id) ON DELETE SET NULL')
 }
 
+// Catálogos privados: las cuentas también tienen dueño. ALTER con valor NULL por defecto
+// porque foreign_keys está activo; el backfill se hace después de sembrar el admin.
+const accountColumns = db.prepare('PRAGMA table_info(accounts)').all().map((c) => c.name)
+if (!accountColumns.includes('created_by')) {
+  db.exec('ALTER TABLE accounts ADD COLUMN created_by INTEGER REFERENCES users(id)')
+}
+for (const table of ['bands', 'clients', 'musicians', 'accounts']) {
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_${table}_created_by ON ${table}(created_by)`)
+}
+
 // Roles del sistema: admin (super administrador) y user (usuario final).
 db.exec("UPDATE users SET role = 'admin' WHERE role = 'owner'")
 db.exec("UPDATE users SET role = 'user' WHERE role = 'member'")
@@ -287,6 +298,15 @@ if (userCount === 0) {
   if (!process.env.SEED_ADMIN_PASSWORD && !process.env.SEED_OWNER_PASSWORD) {
     console.warn('\n[agenda] Super administrador creado: ' + email)
     console.warn('[agenda] Contraseña temporal (cámbiala en Configuración): ' + password + '\n')
+  }
+}
+
+// Los registros heredados sin dueño (de cuando los catálogos eran compartidos) pasan
+// al primer super administrador. Los que ya tienen dueño conservan su dueño original.
+const seedAdminId = db.prepare("SELECT id FROM users WHERE role = 'admin' ORDER BY id LIMIT 1").get()?.id
+if (seedAdminId) {
+  for (const table of ['bands', 'clients', 'musicians', 'accounts']) {
+    db.exec(`UPDATE ${table} SET created_by = ${seedAdminId} WHERE created_by IS NULL`)
   }
 }
 
